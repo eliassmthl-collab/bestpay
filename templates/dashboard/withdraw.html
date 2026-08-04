@@ -13,7 +13,7 @@
   <div class="col-md-4">
     <div class="balance-card h-100">
       <p class="text-white-50 small mb-1">Available Balance</p>
-      <div class="balance-amount mb-3">₦{{ "{:,.0f}".format(current_user.balance) }}</div>
+      <div class="balance-amount mb-3" data-live="balance">₦{{ "{:,.0f}".format(current_user.balance) }}</div>
       <p class="text-white-50 small mb-0"><i class="fa fa-info-circle me-1"></i>Select an amount to withdraw</p>
     </div>
   </div>
@@ -92,9 +92,9 @@
               <th>Date</th><th>Amount</th><th>Bank</th><th>Account</th><th>Status</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="withdrawHistoryTbody">
             {% for w in history %}
-            <tr>
+            <tr data-withdrawal-id="{{ w.id }}">
               <td class="text-muted small">{{ w.created_at.strftime('%b %d, %Y') }}</td>
               <td class="fw-700 text-danger">-₦{{ "{:,.0f}".format(w.amount) }}</td>
               <td class="small">{{ w.bank_name }}</td>

@@ -8,15 +8,20 @@
 
       {% if current_user.payment_submitted and not current_user.is_approved %}
       <!-- Waiting for approval -->
-      <div class="bp-card p-5 text-center">
+      <div class="bp-card p-5 text-center" id="pendingCard">
         <div style="width:80px;height:80px;border-radius:50%;background:rgba(245,158,11,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem">
-          <i class="fa fa-clock fa-2x" style="color:#f59e0b"></i>
+          <i class="fa fa-clock fa-2x" style="color:#f59e0b" id="pendingIcon"></i>
         </div>
-        <h4 class="fw-700 mb-2">Payment Submitted!</h4>
-        <p class="text-muted mb-4">Your payment is being verified by our admin team. This usually takes a few minutes. You'll receive a notification once your account is activated.</p>
-        <div class="alert alert-warning mb-0">
+        <h4 class="fw-700 mb-2" id="pendingTitle">Payment Submitted!</h4>
+        <p class="text-muted mb-4" id="pendingMsg">Your payment is being verified by our admin team. This usually takes a few minutes. You'll receive a notification once your account is activated.</p>
+        <div class="alert alert-warning mb-0" id="pendingAlert">
           <i class="fa fa-triangle-exclamation me-2"></i>
           <strong>Please wait</strong> — do not submit again unless instructed.
+        </div>
+        <!-- Approved state (hidden until polling detects approval) -->
+        <div class="alert alert-success mb-0 d-none" id="approvedAlert">
+          <i class="fa fa-circle-check me-2"></i>
+          <strong>Account Activated!</strong> Redirecting you to your dashboard…
         </div>
       </div>
 
@@ -109,5 +114,56 @@ function showConfirm() {
   var modal = new bootstrap.Modal(document.getElementById('confirmModal'));
   modal.show();
 }
+
+// ── Real-time approval polling ──────────────────────────────────────────────
+// Only run while the user is in the "waiting" state (payment_submitted = true,
+// is_approved = false). We stop as soon as approval is detected.
+(function () {
+  var pendingCard = document.getElementById('pendingCard');
+  if (!pendingCard) return; // not in waiting state — skip
+
+  var pollInterval = null;
+  var pollDelay = 5000; // check every 5 seconds
+
+  function checkApproval() {
+    fetch('/dashboard/status', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.is_approved && data.registration_fee_paid) {
+          // Stop polling
+          clearInterval(pollInterval);
+
+          // Swap the UI to show the approved state
+          var icon = document.getElementById('pendingIcon');
+          if (icon) {
+            icon.className = 'fa fa-circle-check fa-2x';
+            icon.style.color = '#10b981';
+            icon.closest('div').style.background = 'rgba(16,185,129,0.12)';
+          }
+          var title = document.getElementById('pendingTitle');
+          if (title) title.textContent = 'Account Activated! 🎉';
+          var msg = document.getElementById('pendingMsg');
+          if (msg) msg.textContent = 'Your payment has been verified. Welcome to BestPay!';
+          var warn = document.getElementById('pendingAlert');
+          if (warn) warn.classList.add('d-none');
+          var approved = document.getElementById('approvedAlert');
+          if (approved) approved.classList.remove('d-none');
+
+          // Redirect to dashboard after a short delay so user sees the message
+          setTimeout(function () {
+            window.location.href = '/dashboard';
+          }, 2500);
+        } else if (!data.payment_submitted) {
+          // Payment was rejected — reload so the form reappears
+          clearInterval(pollInterval);
+          window.location.reload();
+        }
+      })
+      .catch(function () { /* network hiccup — keep polling */ });
+  }
+
+  // Start polling
+  pollInterval = setInterval(checkApproval, pollDelay);
+})();
 </script>
 {% endblock %}

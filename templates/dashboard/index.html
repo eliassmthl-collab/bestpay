@@ -21,7 +21,7 @@
         <div class="stat-label">Balance</div>
         <div class="stat-icon"><i class="fa fa-wallet"></i></div>
       </div>
-      <div class="stat-value">₦{{ "{:,.0f}".format(current_user.balance) }}</div>
+      <div class="stat-value" data-live="balance">₦{{ "{:,.0f}".format(current_user.balance) }}</div>
     </div>
   </div>
   <div class="col-md-3 col-6">
@@ -30,7 +30,7 @@
         <div class="stat-label">Referrals</div>
         <div class="stat-icon" style="background:rgba(16,185,129,0.12)"><i class="fa fa-users" style="color:#10b981"></i></div>
       </div>
-      <div class="stat-value">{{ current_user.referral_count }}</div>
+      <div class="stat-value" data-live="referral_count">{{ current_user.referral_count }}</div>
     </div>
   </div>
   <div class="col-md-3 col-6">
@@ -39,7 +39,7 @@
         <div class="stat-label">Total Referred</div>
         <div class="stat-icon" style="background:rgba(99,102,241,0.12)"><i class="fa fa-share-nodes" style="color:#6366f1"></i></div>
       </div>
-      <div class="stat-value">{{ referred_users | length }}</div>
+      <div class="stat-value" data-live="total_referred">{{ referred_users | length }}</div>
     </div>
   </div>
   <div class="col-md-3 col-6">
@@ -48,7 +48,7 @@
         <div class="stat-label">Active Referrals</div>
         <div class="stat-icon" style="background:rgba(245,158,11,0.12)"><i class="fa fa-circle-check" style="color:#f59e0b"></i></div>
       </div>
-      <div class="stat-value">{{ approved_referrals | length }}</div>
+      <div class="stat-value" data-live="active_referrals">{{ approved_referrals | length }}</div>
     </div>
   </div>
 </div>
@@ -58,7 +58,7 @@
   <div class="col-lg-5">
     <div class="balance-card h-100">
       <p class="text-white-50 small mb-1">Available Balance</p>
-      <div class="balance-amount mb-1">₦{{ "{:,.0f}".format(current_user.balance) }}</div>
+      <div class="balance-amount mb-1" data-live="balance">₦{{ "{:,.0f}".format(current_user.balance) }}</div>
       <p class="text-white-50 small mb-4">Ready for withdrawal</p>
       <a href="{{ url_for('dashboard.withdraw') }}" class="btn-gold-full px-4 py-2 small" style="position:relative;z-index:1">
         <i class="fa fa-arrow-up me-2"></i>Withdraw Funds
@@ -66,35 +66,39 @@
 
       <hr style="border-color:rgba(255,255,255,0.12)" class="mt-4 mb-3">
 
-      {% set pct = [(current_user.referral_count / 10 * 100), 100] | min %}
+      <!-- Progress: 10 referrals -->
       <div class="d-flex justify-content-between text-white-50 small mb-2">
         <span>Progress to ₦10,000</span>
-        <span>{{ current_user.referral_count }}/10</span>
+        <span><span data-live="referral_count">{{ current_user.referral_count }}</span>/10</span>
       </div>
       <div class="referral-progress-bar mb-2">
-        <div class="bar-fill" style="width:{{ pct }}%"></div>
+        <div class="bar-fill" data-live="progress_10" style="width:{{ [(current_user.referral_count / 10 * 100), 100] | min }}%"></div>
       </div>
-      {% if current_user.referral_count >= 10 %}
-        <p class="text-gold small mb-0">🎉 Milestone reached! ₦10,000 credited.</p>
-      {% else %}
-        <p class="text-white-50 small mb-0">{{ 10 - current_user.referral_count }} more referrals to earn ₦10,000</p>
-      {% endif %}
+      <p class="text-white-50 small mb-0" data-live="milestone_10_msg">
+        {% if current_user.referral_count >= 10 %}
+          🎉 Milestone reached! ₦10,000 credited.
+        {% else %}
+          {{ 10 - current_user.referral_count }} more referrals to earn ₦10,000
+        {% endif %}
+      </p>
 
-      {% if current_user.referral_count >= 10 %}
-        {% set pct30 = [(current_user.referral_count / 30 * 100), 100] | min %}
+      <!-- Progress: 30 referrals (only shown once user hits 10) -->
+      <div id="progress30Wrap" {% if current_user.referral_count < 10 %}style="display:none"{% endif %}>
         <div class="d-flex justify-content-between text-white-50 small mb-2 mt-3">
           <span>Progress to ₦20,000 total</span>
-          <span>{{ current_user.referral_count }}/30</span>
+          <span><span data-live="referral_count">{{ current_user.referral_count }}</span>/30</span>
         </div>
         <div class="referral-progress-bar mb-2">
-          <div class="bar-fill" style="width:{{ pct30 }}%"></div>
+          <div class="bar-fill" data-live="progress_30" style="width:{{ [(current_user.referral_count / 30 * 100), 100] | min }}%"></div>
         </div>
-        {% if current_user.referral_count >= 30 %}
-          <p class="text-gold small mb-0">🏆 Champion! ₦20,000 total earned.</p>
-        {% else %}
-          <p class="text-white-50 small mb-0">{{ 30 - current_user.referral_count }} more for another ₦10,000</p>
-        {% endif %}
-      {% endif %}
+        <p class="text-white-50 small mb-0" data-live="milestone_30_msg">
+          {% if current_user.referral_count >= 30 %}
+            🏆 Champion! ₦20,000 total earned.
+          {% else %}
+            {{ 30 - current_user.referral_count }} more for another ₦10,000
+          {% endif %}
+        </p>
+      </div>
     </div>
   </div>
 
@@ -147,39 +151,41 @@
       <h6 class="fw-700 mb-0">Recent Transactions</h6>
       <a href="{{ url_for('dashboard.transactions') }}" class="small text-gold">View All</a>
     </div>
-    {% if recent_txns %}
-      <div class="table-responsive">
-        <table class="table align-middle mb-0">
-          <thead>
-            <tr style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase">
-              <th>Type</th><th>Amount</th><th>Description</th><th>Date</th><th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for t in recent_txns %}
-            <tr>
-              <td>
-                <span class="badge rounded-pill {% if t.type == 'commission' %}bg-success-subtle text-success{% elif t.type == 'deposit' %}bg-primary-subtle text-primary{% else %}bg-warning-subtle text-warning{% endif %}">
-                  {{ t.type | capitalize }}
-                </span>
-              </td>
-              <td class="fw-600 {% if t.type == 'withdrawal' %}text-danger{% else %}text-success{% endif %}">
-                {{ '-' if t.type == 'withdrawal' else '+' }}₦{{ "{:,.0f}".format(t.amount) }}
-              </td>
-              <td class="text-muted small">{{ t.description or '—' }}</td>
-              <td class="text-muted small">{{ t.created_at.strftime('%b %d, %Y') }}</td>
-              <td><span class="badge-status badge-{{ t.status }}">{{ t.status | capitalize }}</span></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div class="text-center py-4 text-muted">
-        <i class="fa fa-receipt fa-2x mb-2 opacity-25"></i>
-        <p class="mb-0 small">No transactions yet. Start referring to earn!</p>
-      </div>
-    {% endif %}
+    <div id="recentTxnsWrap">
+      {% if recent_txns %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0" id="recentTxnsTable">
+            <thead>
+              <tr style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase">
+                <th>Type</th><th>Amount</th><th>Description</th><th>Date</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recentTxnsTbody">
+              {% for t in recent_txns %}
+              <tr data-txn-id="{{ t.id }}">
+                <td>
+                  <span class="badge rounded-pill {% if t.type == 'commission' %}bg-success-subtle text-success{% elif t.type == 'deposit' %}bg-primary-subtle text-primary{% else %}bg-warning-subtle text-warning{% endif %}">
+                    {{ t.type | capitalize }}
+                  </span>
+                </td>
+                <td class="fw-600 {% if t.type == 'withdrawal' %}text-danger{% else %}text-success{% endif %}">
+                  {{ '-' if t.type == 'withdrawal' else '+' }}₦{{ "{:,.0f}".format(t.amount) }}
+                </td>
+                <td class="text-muted small">{{ t.description or '—' }}</td>
+                <td class="text-muted small">{{ t.created_at.strftime('%b %d, %Y') }}</td>
+                <td><span class="badge-status badge-{{ t.status }}">{{ t.status | capitalize }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center py-4 text-muted" id="noTxnsMsg">
+          <i class="fa fa-receipt fa-2x mb-2 opacity-25"></i>
+          <p class="mb-0 small">No transactions yet. Start referring to earn!</p>
+        </div>
+      {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}

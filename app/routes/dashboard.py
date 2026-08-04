@@ -243,6 +243,101 @@ def change_password():
     return redirect(url_for("dashboard.profile"))
 
 
+@dashboard_bp.route("/status")
+@login_required
+def status():
+    """Polling endpoint: returns full live account state.
+    Used by the frontend to update every dynamic value without a page refresh."""
+    unread = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+
+    # Recent notifications for the bell dropdown
+    recent_notifs = (
+        Notification.query
+        .filter_by(user_id=current_user.id)
+        .order_by(Notification.created_at.desc())
+        .limit(5)
+        .all()
+    )
+    notifs_data = [
+        {
+            "id": n.id,
+            "message": n.message,
+            "link": n.link or "#",
+            "is_read": n.is_read,
+            "created_at": n.created_at.strftime("%b %d, %H:%M"),
+        }
+        for n in recent_notifs
+    ]
+
+    # Referral counts
+    referred_users = User.query.filter_by(referred_by=current_user.referral_code).all()
+    total_referred = len(referred_users)
+    active_referrals = sum(1 for u in referred_users if u.is_approved)
+
+    # 5 most recent transactions
+    recent_txns = (
+        Transaction.query
+        .filter_by(user_id=current_user.id)
+        .order_by(Transaction.created_at.desc())
+        .limit(5)
+        .all()
+    )
+    txns_data = [
+        {
+            "id": t.id,
+            "type": t.type,
+            "amount": t.amount,
+            "description": t.description or "—",
+            "status": t.status,
+            "created_at": t.created_at.strftime("%b %d, %Y"),
+        }
+        for t in recent_txns
+    ]
+
+    # Recent withdrawals (for the withdraw page history)
+    recent_withdrawals = (
+        Withdrawal.query
+        .filter_by(user_id=current_user.id)
+        .order_by(Withdrawal.created_at.desc())
+        .limit(10)
+        .all()
+    )
+    withdrawals_data = [
+        {
+            "id": w.id,
+            "amount": w.amount,
+            "bank_name": w.bank_name,
+            "account_number": w.account_number,
+            "account_name": w.account_name,
+            "status": w.status,
+            "rejection_reason": w.rejection_reason or "",
+            "created_at": w.created_at.strftime("%b %d, %Y"),
+        }
+        for w in recent_withdrawals
+    ]
+
+    return jsonify({
+        # Account state
+        "is_approved": current_user.is_approved,
+        "registration_fee_paid": current_user.registration_fee_paid,
+        "payment_submitted": current_user.payment_submitted,
+        # Financials
+        "balance": current_user.balance,
+        "balance_fmt": "{:,.0f}".format(current_user.balance),
+        # Referrals
+        "referral_count": current_user.referral_count,
+        "total_referred": total_referred,
+        "active_referrals": active_referrals,
+        "milestone_3_paid": current_user.milestone_3_paid,
+        # Transactions & withdrawals
+        "recent_txns": txns_data,
+        "recent_withdrawals": withdrawals_data,
+        # Notifications
+        "unread_count": unread,
+        "notifications": notifs_data,
+    })
+
+
 @dashboard_bp.route("/notifications/mark-read", methods=["POST"])
 @login_required
 def mark_notifications_read():

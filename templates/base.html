@@ -71,14 +71,14 @@
               <li><hr class="dropdown-divider m-0"></li>
               {% set recent_notifs = current_user.notifications | sort(attribute='created_at', reverse=True) %}
               {% for n in recent_notifs[:5] %}
-                <li>
+                <li class="notif-list-item">
                   <a class="dropdown-item notif-item {% if not n.is_read %}unread{% endif %}" href="{{ n.link or '#' }}">
                     <p class="mb-0 small">{{ n.message }}</p>
                     <span class="text-muted" style="font-size:11px">{{ n.created_at.strftime('%b %d, %H:%M') }}</span>
                   </a>
                 </li>
               {% else %}
-                <li><span class="dropdown-item-text small text-muted py-3 text-center">No notifications yet.</span></li>
+                <li><span class="dropdown-item-text small text-muted py-3 text-center notif-placeholder">No notifications yet.</span></li>
               {% endfor %}
             </ul>
           </li>
