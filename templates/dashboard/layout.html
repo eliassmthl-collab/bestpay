@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar d-none d-lg-block">
+    <div class="sidebar-brand">My Account</div>
+    <nav class="nav flex-column">
+      <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}">
+        <i class="fa fa-gauge"></i> Dashboard
+      </a>
+      <a class="nav-link {% if request.endpoint == 'dashboard.referrals' %}active{% endif %}" href="{{ url_for('dashboard.referrals') }}">
+        <i class="fa fa-share-nodes"></i> Referrals
+      </a>
+      <a class="nav-link {% if request.endpoint == 'dashboard.withdraw' %}active{% endif %}" href="{{ url_for('dashboard.withdraw') }}">
+        <i class="fa fa-wallet"></i> Withdraw
+      </a>
+      <a class="nav-link {% if request.endpoint == 'dashboard.transactions' %}active{% endif %}" href="{{ url_for('dashboard.transactions') }}">
+        <i class="fa fa-receipt"></i> Transactions
+      </a>
+      <a class="nav-link {% if 'support' in request.endpoint %}active{% endif %}" href="{{ url_for('dashboard.support') }}">
+        <i class="fa fa-headset"></i> Support
+      </a>
+      <a class="nav-link {% if request.endpoint == 'dashboard.notifications' %}active{% endif %}" href="{{ url_for('dashboard.notifications') }}">
+        <i class="fa fa-bell"></i> Notifications
+        {% set unc = current_user.get_unread_notification_count() %}
+        {% if unc > 0 %}<span class="badge bg-danger ms-auto">{{ unc }}</span>{% endif %}
+      </a>
+      <a class="nav-link {% if request.endpoint == 'dashboard.profile' %}active{% endif %}" href="{{ url_for('dashboard.profile') }}">
+        <i class="fa fa-user"></i> Profile
+      </a>
+      <div class="px-3 mt-4">
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm w-100">
+          <i class="fa fa-right-from-bracket me-1"></i> Logout
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-content">
+    {% block dashboard_content %}{% endblock %}
+  </div>
+
+</div>
+{% endblock %}

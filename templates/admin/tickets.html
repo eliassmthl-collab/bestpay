@@ -1,0 +1,61 @@
+{% extends "admin/layout.html" %}
+{% block title %}Support Tickets{% endblock %}
+
+{% block admin_content %}
+<div class="mb-4">
+  <h4 class="fw-800 mb-1">Support Tickets</h4>
+  <p class="text-muted mb-0 small">Respond to user inquiries and support requests</p>
+</div>
+
+{% if open_tickets %}
+<div class="bp-card mb-4">
+  <div class="card-body p-4">
+    <h6 class="fw-700 mb-3 d-flex align-items-center gap-2">
+      <span class="badge bg-primary">{{ open_tickets | length }}</span> Open Tickets
+    </h6>
+    <div class="d-flex flex-column gap-3">
+      {% for t in open_tickets %}
+      <a href="{{ url_for('admin.ticket_detail', ticket_id=t.id) }}" class="text-decoration-none">
+        <div class="p-3 rounded-3 border d-flex align-items-start justify-content-between gap-3"
+             style="transition:all 0.2s" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background=''">
+          <div>
+            <div class="fw-600 text-dark small">{{ t.subject }}</div>
+            <div class="text-muted" style="font-size:0.78rem">From: <strong>{{ t.user.display_name }}</strong> ({{ t.user.email }}) · {{ t.created_at.strftime('%b %d, %Y') }}</div>
+            <div class="text-muted mt-1" style="font-size:0.78rem">{{ t.message[:100] }}{% if t.message|length > 100 %}...{% endif %}</div>
+          </div>
+          <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
+            <span class="badge-status badge-open">Open</span>
+            {% if t.replies %}<span class="badge bg-secondary-subtle text-secondary" style="font-size:10px">{{ t.replies|length }} replies</span>{% endif %}
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-success mb-4"><i class="fa fa-circle-check me-2"></i>No open tickets!</div>
+{% endif %}
+
+{% if closed_tickets %}
+<div class="bp-card">
+  <div class="card-body p-4">
+    <h6 class="fw-700 mb-3">Closed Tickets (recent)</h6>
+    <div class="d-flex flex-column gap-2">
+      {% for t in closed_tickets %}
+      <a href="{{ url_for('admin.ticket_detail', ticket_id=t.id) }}" class="text-decoration-none">
+        <div class="p-3 rounded-3 d-flex align-items-center justify-content-between gap-2"
+             style="background:#f8f9fa">
+          <div>
+            <div class="text-muted small fw-600">{{ t.subject }}</div>
+            <div class="text-muted" style="font-size:0.72rem">{{ t.user.display_name }} · {{ t.created_at.strftime('%b %d, %Y') }}</div>
+          </div>
+          <span class="badge-status badge-closed">Closed</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

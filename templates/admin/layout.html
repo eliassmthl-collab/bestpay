@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar d-none d-lg-block">
+    <div class="sidebar-brand">Admin Panel</div>
+    <nav class="nav flex-column">
+      <a class="nav-link {% if request.endpoint == 'admin.index' %}active{% endif %}" href="{{ url_for('admin.index') }}">
+        <i class="fa fa-gauge"></i> Dashboard
+      </a>
+      <a class="nav-link {% if request.endpoint == 'admin.users' or request.endpoint == 'admin.user_detail' %}active{% endif %}" href="{{ url_for('admin.users') }}">
+        <i class="fa fa-users"></i> Users
+      </a>
+      <a class="nav-link {% if request.endpoint == 'admin.payments' %}active{% endif %}" href="{{ url_for('admin.payments') }}">
+        <i class="fa fa-money-bill-wave"></i> Payments
+        {% set pp = namespace(count=0) %}
+        {% if pending_payment_count is defined %}
+          {% if pending_payment_count > 0 %}<span class="badge bg-danger ms-auto">{{ pending_payment_count }}</span>{% endif %}
+        {% endif %}
+      </a>
+      <a class="nav-link {% if request.endpoint == 'admin.withdrawals' %}active{% endif %}" href="{{ url_for('admin.withdrawals') }}">
+        <i class="fa fa-wallet"></i> Withdrawals
+      </a>
+      <a class="nav-link {% if 'ticket' in request.endpoint %}active{% endif %}" href="{{ url_for('admin.tickets') }}">
+        <i class="fa fa-headset"></i> Support Tickets
+      </a>
+      <a class="nav-link {% if request.endpoint == 'admin.transactions' %}active{% endif %}" href="{{ url_for('admin.transactions') }}">
+        <i class="fa fa-receipt"></i> Transactions
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-content">
+    {% block admin_content %}{% endblock %}
+  </div>
+
+</div>
+{% endblock %}

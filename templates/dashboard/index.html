@@ -1,0 +1,185 @@
+{% extends "dashboard/layout.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-800 mb-1">Welcome back, {{ current_user.display_name.split()[0] }}! 👋</h4>
+    <p class="text-muted mb-0 small">Here's your earnings overview</p>
+  </div>
+  <a href="{{ url_for('dashboard.referrals') }}" class="btn-gold-full px-4 py-2">
+    <i class="fa fa-share-nodes me-2"></i>Invite Friends
+  </a>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-4 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="stat-card">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="stat-label">Balance</div>
+        <div class="stat-icon"><i class="fa fa-wallet"></i></div>
+      </div>
+      <div class="stat-value">₦{{ "{:,.0f}".format(current_user.balance) }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card" style="border-left-color:#10b981">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="stat-label">Referrals</div>
+        <div class="stat-icon" style="background:rgba(16,185,129,0.12)"><i class="fa fa-users" style="color:#10b981"></i></div>
+      </div>
+      <div class="stat-value">{{ current_user.referral_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card" style="border-left-color:#6366f1">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="stat-label">Total Referred</div>
+        <div class="stat-icon" style="background:rgba(99,102,241,0.12)"><i class="fa fa-share-nodes" style="color:#6366f1"></i></div>
+      </div>
+      <div class="stat-value">{{ referred_users | length }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card" style="border-left-color:#f59e0b">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="stat-label">Active Referrals</div>
+        <div class="stat-icon" style="background:rgba(245,158,11,0.12)"><i class="fa fa-circle-check" style="color:#f59e0b"></i></div>
+      </div>
+      <div class="stat-value">{{ approved_referrals | length }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Balance Card + Referral Progress -->
+  <div class="col-lg-5">
+    <div class="balance-card h-100">
+      <p class="text-white-50 small mb-1">Available Balance</p>
+      <div class="balance-amount mb-1">₦{{ "{:,.0f}".format(current_user.balance) }}</div>
+      <p class="text-white-50 small mb-4">Ready for withdrawal</p>
+      <a href="{{ url_for('dashboard.withdraw') }}" class="btn-gold-full px-4 py-2 small" style="position:relative;z-index:1">
+        <i class="fa fa-arrow-up me-2"></i>Withdraw Funds
+      </a>
+
+      <hr style="border-color:rgba(255,255,255,0.12)" class="mt-4 mb-3">
+
+      {% set pct = [(current_user.referral_count / 10 * 100), 100] | min %}
+      <div class="d-flex justify-content-between text-white-50 small mb-2">
+        <span>Progress to ₦10,000</span>
+        <span>{{ current_user.referral_count }}/10</span>
+      </div>
+      <div class="referral-progress-bar mb-2">
+        <div class="bar-fill" style="width:{{ pct }}%"></div>
+      </div>
+      {% if current_user.referral_count >= 10 %}
+        <p class="text-gold small mb-0">🎉 Milestone reached! ₦10,000 credited.</p>
+      {% else %}
+        <p class="text-white-50 small mb-0">{{ 10 - current_user.referral_count }} more referrals to earn ₦10,000</p>
+      {% endif %}
+
+      {% if current_user.referral_count >= 10 %}
+        {% set pct30 = [(current_user.referral_count / 30 * 100), 100] | min %}
+        <div class="d-flex justify-content-between text-white-50 small mb-2 mt-3">
+          <span>Progress to ₦20,000 total</span>
+          <span>{{ current_user.referral_count }}/30</span>
+        </div>
+        <div class="referral-progress-bar mb-2">
+          <div class="bar-fill" style="width:{{ pct30 }}%"></div>
+        </div>
+        {% if current_user.referral_count >= 30 %}
+          <p class="text-gold small mb-0">🏆 Champion! ₦20,000 total earned.</p>
+        {% else %}
+          <p class="text-white-50 small mb-0">{{ 30 - current_user.referral_count }} more for another ₦10,000</p>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Referral Link Card -->
+  <div class="col-lg-7">
+    <div class="referral-box h-100">
+      <h6 class="text-white fw-600 mb-3"><i class="fa fa-share-nodes me-2"></i>Your Referral Details</h6>
+      <p class="text-white-50 small mb-3">Share your link or code with friends. When they activate, you earn!</p>
+
+      <div class="mb-3">
+        <div class="text-white-50 small mb-1">Referral Code</div>
+        <div class="referral-code-display">
+          <span>{{ current_user.referral_code }}</span>
+          <button class="copy-btn" data-copy="{{ current_user.referral_code }}" title="Copy code">
+            <i class="fa fa-copy"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="text-white-50 small mb-1">Referral Link</div>
+        <div class="d-flex align-items-center gap-2">
+          <input type="text" class="form-control form-control-sm" id="refLinkInput"
+                 value="{{ referral_link }}" readonly
+                 style="background:rgba(255,255,255,0.1);border-color:rgba(226,183,20,0.3);color:white;font-size:0.75rem">
+          <button class="btn-gold-full px-3 py-2 small" data-copy="{{ referral_link }}" title="Copy link" style="white-space:nowrap">
+            <i class="fa fa-copy me-1"></i>Copy
+          </button>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2">
+        <a href="https://wa.me/?text=Join%20BestPay%20and%20earn%20%E2%82%A610%2C000%20by%20referring%20friends!%20Sign%20up%20with%20my%20link%3A%20{{ referral_link | urlencode }}"
+           target="_blank" class="btn btn-sm btn-success rounded-3">
+          <i class="fab fa-whatsapp me-1"></i>Share on WhatsApp
+        </a>
+        <a href="https://t.me/share/url?url={{ referral_link | urlencode }}&text=Earn%20%E2%82%A610%2C000%20on%20BestPay!"
+           target="_blank" class="btn btn-sm btn-info text-white rounded-3">
+          <i class="fab fa-telegram me-1"></i>Telegram
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="bp-card">
+  <div class="card-body p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="fw-700 mb-0">Recent Transactions</h6>
+      <a href="{{ url_for('dashboard.transactions') }}" class="small text-gold">View All</a>
+    </div>
+    {% if recent_txns %}
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase">
+              <th>Type</th><th>Amount</th><th>Description</th><th>Date</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in recent_txns %}
+            <tr>
+              <td>
+                <span class="badge rounded-pill {% if t.type == 'commission' %}bg-success-subtle text-success{% elif t.type == 'deposit' %}bg-primary-subtle text-primary{% else %}bg-warning-subtle text-warning{% endif %}">
+                  {{ t.type | capitalize }}
+                </span>
+              </td>
+              <td class="fw-600 {% if t.type == 'withdrawal' %}text-danger{% else %}text-success{% endif %}">
+                {{ '-' if t.type == 'withdrawal' else '+' }}₦{{ "{:,.0f}".format(t.amount) }}
+              </td>
+              <td class="text-muted small">{{ t.description or '—' }}</td>
+              <td class="text-muted small">{{ t.created_at.strftime('%b %d, %Y') }}</td>
+              <td><span class="badge-status badge-{{ t.status }}">{{ t.status | capitalize }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="fa fa-receipt fa-2x mb-2 opacity-25"></i>
+        <p class="mb-0 small">No transactions yet. Start referring to earn!</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

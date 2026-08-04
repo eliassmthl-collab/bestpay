@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}Earn ₦10,000+ Referring Friends{% endblock %}
+
+{% block footer %}{% endblock %}
+
+{% block content %}
+<!-- HERO -->
+<section class="hero-section">
+  <div class="container position-relative" style="z-index:2">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <div class="mb-3">
+          <span class="badge text-bg-warning fw-600 px-3 py-2 rounded-pill">🇳🇬 Nigeria's #1 Referral Platform</span>
+        </div>
+        <h1 class="hero-title mb-4">
+          Refer Friends &<br>
+          Earn Real <span class="highlight">₦10,000</span><br>
+          In Your Account
+        </h1>
+        <p class="hero-subtitle mb-4">
+          Join thousands of Nigerians earning rewards by sharing BestPay. For just ₦1,000, unlock the ability to earn ₦10,000 when you successfully refer 10 active members. Fast, secure bank transfers.
+        </p>
+        <div class="d-flex flex-wrap gap-3 mb-5">
+          <a href="{{ url_for('auth.signup') }}" class="btn-gold-full px-4 py-3 fs-6">
+            <i class="fa fa-rocket me-2"></i>Start Earning Now
+          </a>
+          <a href="#how-it-works" class="btn btn-outline-light px-4 py-3 rounded-3">
+            <i class="fa fa-play-circle me-2"></i>See How It Works
+          </a>
+        </div>
+        <div class="d-flex flex-wrap gap-4">
+          <div class="text-white">
+            <div class="fw-800 fs-3 text-gold">5,000+</div>
+            <div class="small text-white-50">Active Members</div>
+          </div>
+          <div class="text-white">
+            <div class="fw-800 fs-3 text-gold">₦50M+</div>
+            <div class="small text-white-50">Rewards Paid Out</div>
+          </div>
+          <div class="text-white">
+            <div class="fw-800 fs-3 text-gold">24hrs</div>
+            <div class="small text-white-50">Avg. Withdrawal Time</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6 d-none d-lg-block">
+        <div class="floating-card">
+          <div class="d-flex align-items-center gap-3 mb-4">
+            <div class="avatar-md avatar-sm" style="width:52px;height:52px;border-radius:14px">C</div>
+            <div>
+              <div class="fw-700">Chukwudi O.</div>
+              <div class="small text-muted">Lagos, Nigeria</div>
+            </div>
+            <span class="ms-auto badge bg-success-subtle text-success px-3">Active</span>
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-6">
+              <div class="p-3 rounded-3" style="background:#f4f6fb">
+                <div class="small text-muted mb-1">Total Earned</div>
+                <div class="fw-800 text-navy fs-5">₦20,000</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="p-3 rounded-3" style="background:#f4f6fb">
+                <div class="small text-muted mb-1">Referrals</div>
+                <div class="fw-800 text-navy fs-5">30 / 30</div>
+              </div>
+            </div>
+          </div>
+          <div class="mb-2 d-flex justify-content-between small fw-600">
+            <span>Referral Progress</span>
+            <span class="text-gold">30/30 ✓</span>
+          </div>
+          <div class="referral-progress-bar">
+            <div class="bar-fill" style="width:100%"></div>
+          </div>
+          <div class="mt-4 pt-3 border-top d-flex align-items-center gap-2 small text-muted">
+            <i class="fa fa-circle-check text-success"></i>
+            ₦10,000 credited · 3 days ago
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works" id="how-it-works">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-title">How BestPay Works</div>
+      <div class="divider-gold mx-auto"></div>
+      <p class="section-subtitle">Three simple steps to start earning</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="step-card h-100">
+          <div class="step-number mx-auto">1</div>
+          <h5 class="fw-700 mt-3">Sign Up & Activate</h5>
+          <p class="text-muted">Create your free account and pay a one-time activation fee of ₦1,000. Your account goes live once an admin verifies your payment.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="step-card h-100">
+          <div class="step-number mx-auto">2</div>
+          <h5 class="fw-700 mt-3">Share Your Referral Link</h5>
+          <p class="text-muted">Get your unique referral link and code. Share it with friends, family, colleagues — anyone in Nigeria who wants to earn extra income.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="step-card h-100">
+          <div class="step-number mx-auto">3</div>
+          <h5 class="fw-700 mt-3">Get Paid Directly</h5>
+          <p class="text-muted">When 10 of your referrals activate their accounts, ₦10,000 is automatically credited to your BestPay balance. Withdraw to your bank anytime.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EARNINGS -->
+<section class="earnings-section">
+  <div class="container">
+    <div class="earnings-card">
+      <div class="row align-items-center">
+        <div class="col-lg-6 mb-4 mb-lg-0">
+          <h2 class="text-white fw-800 mb-3">Earnings Structure</h2>
+          <p class="text-white-50 mb-4">Clear, transparent reward milestones. The more you refer, the more you earn.</p>
+          <div class="d-flex flex-column gap-3">
+            <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:rgba(255,255,255,0.08)">
+              <div style="width:48px;height:48px;border-radius:12px;background:rgba(226,183,20,0.2);display:flex;align-items:center;justify-content:center;font-size:1.4rem">🎯</div>
+              <div>
+                <div class="text-white fw-700">10 Referrals Milestone</div>
+                <div class="text-white-50 small">Earn ₦10,000 credited instantly to your wallet</div>
+              </div>
+              <div class="ms-auto fw-800 text-gold fs-5">₦10k</div>
+            </div>
+            <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:rgba(255,255,255,0.08)">
+              <div style="width:48px;height:48px;border-radius:12px;background:rgba(226,183,20,0.2);display:flex;align-items:center;justify-content:center;font-size:1.4rem">🏆</div>
+              <div>
+                <div class="text-white fw-700">30 Referrals Milestone</div>
+                <div class="text-white-50 small">Earn another ₦10,000 — total ₦20,000 earned!</div>
+              </div>
+              <div class="ms-auto fw-800 text-gold fs-5">₦10k</div>
+            </div>
+            <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:rgba(255,255,255,0.08)">
+              <div style="width:48px;height:48px;border-radius:12px;background:rgba(226,183,20,0.2);display:flex;align-items:center;justify-content:center;font-size:1.4rem">🏦</div>
+              <div>
+                <div class="text-white fw-700">Direct Bank Transfer</div>
+                <div class="text-white-50 small">Withdraw directly to GTBank, Access, Zenith, UBA & more</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6 text-center">
+          <div class="p-4 rounded-4" style="background:rgba(255,255,255,0.06)">
+            <div class="text-white-50 small mb-2">Maximum Potential Earnings</div>
+            <div class="display-3 fw-800 text-gold">₦20,000</div>
+            <div class="text-white-50 mt-2 mb-4">from just ₦1,000 investment</div>
+            <a href="{{ url_for('auth.signup') }}" class="btn-gold-full px-4 py-3 fs-6 d-inline-block">
+              <i class="fa fa-bolt me-2"></i>Claim Your Spot
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonial-section">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-title">Real People, Real Results</div>
+      <div class="divider-gold mx-auto"></div>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="testimonial-card h-100">
+          <div class="stars mb-2">★★★★★</div>
+          <p class="text-muted mb-3">"I joined BestPay three weeks ago and already hit my 10-referral milestone. ₦10,000 went straight to my account. Legit platform!"</p>
+          <div class="d-flex align-items-center gap-2">
+            <div class="avatar-sm">A</div>
+            <div><div class="fw-600 small">Adaeze N.</div><div class="text-muted" style="font-size:11px">Enugu</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="testimonial-card h-100">
+          <div class="stars mb-2">★★★★★</div>
+          <p class="text-muted mb-3">"Best passive income I've found. The dashboard is clean, withdrawals are processed fast. I recommended BestPay to my whole WhatsApp group."</p>
+          <div class="d-flex align-items-center gap-2">
+            <div class="avatar-sm">T</div>
+            <div><div class="fw-600 small">Tunde B.</div><div class="text-muted" style="font-size:11px">Lagos</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="testimonial-card h-100">
+          <div class="stars mb-2">★★★★★</div>
+          <p class="text-muted mb-3">"Very transparent. You can see exactly how many referrals you have, and the admin approves payments same day. Already on 24 referrals!"</p>
+          <div class="d-flex align-items-center gap-2">
+            <div class="avatar-sm">F</div>
+            <div><div class="fw-600 small">Fatima M.</div><div class="text-muted" style="font-size:11px">Abuja</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="py-5" style="background:#f4f6fb">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-title">Frequently Asked Questions</div>
+      <div class="divider-gold mx-auto"></div>
+    </div>
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="accordion" id="faqAccordion">
+          <div class="accordion-item border-0 mb-3 rounded-3 overflow-hidden shadow-sm">
+            <h2 class="accordion-header">
+              <button class="accordion-button fw-600" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                How much do I need to pay to start?
+              </button>
+            </h2>
+            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-muted">A one-time activation fee of ₦1,000. Once an admin confirms your payment, your account is fully activated and you can start referring immediately.</div>
+            </div>
+          </div>
+          <div class="accordion-item border-0 mb-3 rounded-3 overflow-hidden shadow-sm">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-600" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                When do I receive my money?
+              </button>
+            </h2>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-muted">₦10,000 is credited to your BestPay wallet as soon as your 10th referral is activated. You can then request a withdrawal to your bank account, processed within 30 minutes.</div>
+            </div>
+          </div>
+          <div class="accordion-item border-0 mb-3 rounded-3 overflow-hidden shadow-sm">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-600" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                Which banks support withdrawals?
+              </button>
+            </h2>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-muted">All Nigerian commercial banks are supported — GTBank, Access Bank, Zenith Bank, UBA, First Bank, Opay, Kuda, and more.</div>
+            </div>
+          </div>
+          <div class="accordion-item border-0 mb-3 rounded-3 overflow-hidden shadow-sm">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-600" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                Is there a limit on how many people I can refer?
+              </button>
+            </h2>
+            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-muted">No limit! You can refer as many people as you like. You earn a milestone reward at 10 referrals (₦10,000) and again at 30 referrals (another ₦10,000).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section text-center">
+  <div class="container">
+    <h2 class="text-white fw-800 display-6 mb-3">Ready to Start Earning?</h2>
+    <p class="text-white-50 fs-5 mb-4">Join thousands of Nigerians already earning on BestPay.</p>
+    <a href="{{ url_for('auth.signup') }}" class="btn-gold-full px-5 py-3 fs-5">
+      <i class="fa fa-user-plus me-2"></i>Create Free Account
+    </a>
+    <p class="text-white-50 small mt-3">Only ₦1,000 to activate · Withdraw to any Nigerian bank</p>
+  </div>
+</section>
+
+<!-- REGULAR FOOTER -->
+<footer class="bp-footer mt-0">
+  <div class="container py-4">
+    <div class="row align-items-center">
+      <div class="col-md-4 mb-3 mb-md-0">
+        <span class="fw-700 text-gold fs-5"><span class="brand-icon">₦</span> BestPay</span>
+        <p class="small text-muted mt-1 mb-0">Nigeria's #1 Referral Rewards Platform</p>
+      </div>
+      <div class="col-md-4 text-center mb-3 mb-md-0">
+        <a href="#how-it-works" class="footer-link me-3">How It Works</a>
+        <a href="{{ url_for('auth.signup') }}" class="footer-link me-3">Sign Up</a>
+        <a href="{{ url_for('auth.login') }}" class="footer-link">Log In</a>
+      </div>
+      <div class="col-md-4 text-md-end">
+        <p class="small text-muted mb-0">© 2024 BestPay. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</footer>
+{% endblock %}

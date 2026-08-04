@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper">
+  <aside class="admin-sidebar d-none d-lg-block">
+    <div class="sidebar-brand">Super Admin</div>
+    <nav class="nav flex-column">
+      <a class="nav-link {% if request.endpoint == 'super_admin.index' %}active{% endif %}" href="{{ url_for('super_admin.index') }}">
+        <i class="fa fa-shield-halved"></i> Overview
+      </a>
+      <a class="nav-link {% if 'users' in request.endpoint %}active{% endif %}" href="{{ url_for('super_admin.users') }}">
+        <i class="fa fa-users"></i> All Users
+      </a>
+      <a class="nav-link {% if request.endpoint == 'super_admin.transactions' %}active{% endif %}" href="{{ url_for('super_admin.transactions') }}">
+        <i class="fa fa-receipt"></i> Transactions
+      </a>
+      <a class="nav-link {% if request.endpoint == 'super_admin.settings' %}active{% endif %}" href="{{ url_for('super_admin.settings') }}">
+        <i class="fa fa-gear"></i> Site Settings
+      </a>
+      <a class="nav-link" href="{{ url_for('admin.payments') }}">
+        <i class="fa fa-money-bill-wave"></i> Payments
+      </a>
+      <a class="nav-link" href="{{ url_for('admin.withdrawals') }}">
+        <i class="fa fa-wallet"></i> Withdrawals
+      </a>
+      <a class="nav-link" href="{{ url_for('admin.tickets') }}">
+        <i class="fa fa-headset"></i> Support Tickets
+      </a>
+      <a class="nav-link text-warning" href="{{ url_for('super_admin.download_db') }}">
+        <i class="fa fa-database"></i> Download DB
+      </a>
+    </nav>
+  </aside>
+  <div class="admin-content">
+    {% block super_admin_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

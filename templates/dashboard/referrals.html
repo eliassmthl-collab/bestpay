@@ -1,0 +1,143 @@
+{% extends "dashboard/layout.html" %}
+{% block title %}My Referrals{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-800 mb-1">My Referrals</h4>
+    <p class="text-muted mb-0 small">People who signed up using your link</p>
+  </div>
+</div>
+
+<!-- Referral Link Box -->
+<div class="referral-box mb-4">
+  <div class="row align-items-center g-3">
+    <div class="col-lg-6">
+      <h6 class="text-white fw-600 mb-1"><i class="fa fa-share-nodes me-2"></i>Your Referral Link</h6>
+      <p class="text-white-50 small mb-3">Share this link. When friends activate, your count increases.</p>
+      <div class="d-flex align-items-center gap-2">
+        <input type="text" class="form-control" value="{{ referral_link }}" readonly
+               style="background:rgba(255,255,255,0.1);border-color:rgba(226,183,20,0.3);color:white;font-size:0.8rem">
+        <button class="btn-gold-full px-3 py-2 small" data-copy="{{ referral_link }}" style="white-space:nowrap">
+          <i class="fa fa-copy me-1"></i>Copy
+        </button>
+      </div>
+    </div>
+    <div class="col-lg-3 text-center">
+      <div class="text-white-50 small">Referral Code</div>
+      <div class="referral-code-display mt-2">
+        <span>{{ current_user.referral_code }}</span>
+        <button class="copy-btn" data-copy="{{ current_user.referral_code }}"><i class="fa fa-copy"></i></button>
+      </div>
+    </div>
+    <div class="col-lg-3 text-center">
+      <div class="text-white-50 small mb-1">Total Active Referrals</div>
+      <div class="fw-800 text-gold" style="font-size:2.5rem">{{ current_user.referral_count }}</div>
+      <div class="text-white-50 small">out of {{ referred_users | length }} total</div>
+    </div>
+  </div>
+</div>
+
+<!-- Milestone Progress -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="bp-card p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h6 class="fw-700 mb-0">🎯 3 Referrals — ₦2,000</h6>
+          <p class="text-muted small mb-0">First milestone reward</p>
+        </div>
+        {% if current_user.milestone_3_paid %}
+          <span class="badge bg-success px-3 py-2">Earned ✓</span>
+        {% else %}
+          <span class="text-gold fw-700">{{ current_user.referral_count }}/3</span>
+        {% endif %}
+      </div>
+      <div class="referral-progress-bar" style="background:#f0f0f0">
+        {% set pct = [(current_user.referral_count / 3 * 100), 100] | min %}
+        <div class="bar-fill" style="width:{{ pct }}%;background:linear-gradient(90deg,#1a1a2e,#0f3460)"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="bp-card p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h6 class="fw-700 mb-0">💰 Referrals 4–20 — ₦500 each</h6>
+          <p class="text-muted small mb-0">Bonus per referral in this range</p>
+        </div>
+        {% if current_user.referral_count >= 20 %}
+          <span class="badge bg-success px-3 py-2">Maxed ✓</span>
+        {% elif current_user.referral_count >= 4 %}
+          <span class="text-gold fw-700">{{ current_user.referral_count }}/20</span>
+        {% else %}
+          <span class="text-muted small">Unlocks at 4</span>
+        {% endif %}
+      </div>
+      <div class="referral-progress-bar" style="background:#f0f0f0">
+        {% set pct20 = [(current_user.referral_count / 20 * 100), 100] | min %}
+        <div class="bar-fill" style="width:{{ pct20 }}%;background:linear-gradient(90deg,var(--gold),var(--gold2))"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Referrals Table -->
+<div class="bp-card">
+  <div class="card-body p-4">
+    <h6 class="fw-700 mb-3">People You've Referred ({{ referred_users | length }})</h6>
+    {% if referred_users %}
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase">
+              <th>#</th><th>Name</th><th>Email</th><th>Joined</th><th>Payment</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in referred_users %}
+            <tr>
+              <td class="text-muted small">{{ loop.index }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="avatar-sm" style="width:32px;height:32px">{{ u.display_name[0].upper() }}</div>
+                  <span class="fw-600 small">{{ u.display_name }}</span>
+                </div>
+              </td>
+              <td class="text-muted small">{{ u.email }}</td>
+              <td class="text-muted small">{{ u.created_at.strftime('%b %d, %Y') }}</td>
+              <td>
+                {% if u.registration_fee_paid %}
+                  <span class="badge bg-success-subtle text-success">Paid</span>
+                {% elif u.payment_submitted %}
+                  <span class="badge bg-warning-subtle text-warning">Pending</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary">Not Paid</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.is_approved %}
+                  <span class="badge-status badge-approved">Active ✓</span>
+                {% else %}
+                  <span class="badge-status badge-pending">Pending</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="fa fa-users fa-3x mb-3 opacity-25"></i>
+        <h6>No referrals yet</h6>
+        <p class="small mb-4">Share your referral link to start earning!</p>
+        <a href="https://wa.me/?text=Join%20BestPay%20and%20earn%20real%20money!%20{{ referral_link | urlencode }}"
+           target="_blank" class="btn-gold-full px-4 py-2">
+          <i class="fab fa-whatsapp me-2"></i>Share on WhatsApp
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

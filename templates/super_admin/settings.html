@@ -1,0 +1,71 @@
+{% extends "super_admin/layout.html" %}
+{% block title %}Site Settings{% endblock %}
+
+{% block super_admin_content %}
+<div class="mb-4">
+  <h4 class="fw-800 mb-1">Site Settings</h4>
+  <p class="text-muted mb-0 small">Configure platform payment details, fees, and commissions</p>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="bp-card p-5">
+      <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <h6 class="fw-700 mb-3 text-gold"><i class="fa fa-building-columns me-2"></i>Payment Account</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-12">
+            {{ form.bank_name.label(class="form-label") }}
+            {{ form.bank_name(class="form-control", placeholder="e.g. GTBank") }}
+          </div>
+          <div class="col-md-6">
+            {{ form.account_number.label(class="form-label") }}
+            {{ form.account_number(class="form-control", placeholder="10-digit account number") }}
+          </div>
+          <div class="col-md-6">
+            {{ form.account_name.label(class="form-label") }}
+            {{ form.account_name(class="form-control", placeholder="Full account name") }}
+          </div>
+        </div>
+
+        <h6 class="fw-700 mb-3 text-gold"><i class="fa fa-sliders me-2"></i>Platform Settings</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            {{ form.platform_name.label(class="form-label") }}
+            {{ form.platform_name(class="form-control") }}
+          </div>
+          <div class="col-md-6">
+            {{ form.registration_fee.label(class="form-label") }}
+            <div class="input-group">
+              <span class="input-group-text">₦</span>
+              {{ form.registration_fee(class="form-control", placeholder="1000") }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            {{ form.milestone_3_bonus.label(class="form-label") }}
+            <div class="input-group">
+              <span class="input-group-text">₦</span>
+              {{ form.milestone_3_bonus(class="form-control", placeholder="2000") }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            {{ form.per_referral_bonus.label(class="form-label") }}
+            <div class="input-group">
+              <span class="input-group-text">₦</span>
+              {{ form.per_referral_bonus(class="form-control", placeholder="500") }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            {{ form.withdrawal_tax_rate.label(class="form-label") }}
+            {{ form.withdrawal_tax_rate(class="form-control", placeholder="0.10") }}
+            <div class="form-text">Enter as a decimal, e.g. <code>0.10</code> for 10%</div>
+          </div>
+        </div>
+
+        {{ form.submit(class="btn-gold-full w-100 py-3 fs-6") }}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

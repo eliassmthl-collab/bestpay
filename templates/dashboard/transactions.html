@@ -1,0 +1,66 @@
+{% extends "dashboard/layout.html" %}
+{% block title %}Transactions{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-4">
+  <h4 class="fw-800 mb-1">Transaction History</h4>
+  <p class="text-muted mb-0 small">All your deposits, commissions, and withdrawals</p>
+</div>
+
+<div class="bp-card">
+  <div class="card-body p-4">
+    {% if txns.items %}
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase">
+              <th>Date</th><th>Type</th><th>Description</th><th>Amount</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in txns.items %}
+            <tr>
+              <td class="text-muted small">{{ t.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+              <td>
+                <span class="badge rounded-pill {% if t.type == 'commission' %}bg-success-subtle text-success{% elif t.type == 'deposit' %}bg-primary-subtle text-primary{% else %}bg-warning-subtle text-warning{% endif %} px-3">
+                  {% if t.type == 'commission' %}<i class="fa fa-star me-1"></i>{% elif t.type == 'deposit' %}<i class="fa fa-arrow-down me-1"></i>{% else %}<i class="fa fa-arrow-up me-1"></i>{% endif %}
+                  {{ t.type | capitalize }}
+                </span>
+              </td>
+              <td class="text-muted small">{{ t.description or '—' }}</td>
+              <td class="fw-700 {% if t.type == 'withdrawal' %}text-danger{% else %}text-success{% endif %}">
+                {{ '-' if t.type == 'withdrawal' else '+' }}₦{{ "{:,.0f}".format(t.amount) }}
+              </td>
+              <td><span class="badge-status badge-{{ t.status }}">{{ t.status | capitalize }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      {% if txns.pages > 1 %}
+      <nav class="mt-4">
+        <ul class="pagination pagination-sm justify-content-center">
+          {% for p in txns.iter_pages() %}
+            {% if p %}
+              <li class="page-item {% if p == txns.page %}active{% endif %}">
+                <a class="page-link" href="?page={{ p }}">{{ p }}</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </nav>
+      {% endif %}
+
+    {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="fa fa-receipt fa-3x mb-3 opacity-25"></i>
+        <p class="mb-0">No transactions yet.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

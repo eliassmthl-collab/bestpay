@@ -1,0 +1,113 @@
+{% extends "super_admin/layout.html" %}
+{% block title %}Super Admin{% endblock %}
+
+{% block super_admin_content %}
+<div class="mb-4">
+  <h4 class="fw-800 mb-1"><i class="fa fa-shield-halved me-2 text-gold"></i>Super Admin Overview</h4>
+  <p class="text-muted mb-0 small">Full platform control and visibility</p>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="stat-card">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value mt-1">{{ total_users }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card" style="border-left-color:#10b981">
+      <div class="stat-label">Total Deposited</div>
+      <div class="stat-value mt-1 text-success" style="font-size:1.4rem">₦{{ "{:,.0f}".format(total_deposited) }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card" style="border-left-color:#f59e0b">
+      <div class="stat-label">Total Commissions</div>
+      <div class="stat-value mt-1" style="font-size:1.4rem">₦{{ "{:,.0f}".format(total_commissions) }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card" style="border-left-color:#ef4444">
+      <div class="stat-label">Total Withdrawn</div>
+      <div class="stat-value mt-1 text-danger" style="font-size:1.4rem">₦{{ "{:,.0f}".format(total_withdrawn) }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Admins Management -->
+<div class="bp-card p-4 mb-4">
+  <h6 class="fw-700 mb-3">Admin Accounts</h6>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0 small">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for a in admins %}
+        <tr>
+          <td class="fw-600">{{ a.display_name }}</td>
+          <td>{{ a.email }}</td>
+          <td>
+            {% if a.is_super_admin %}
+              <span class="badge bg-danger">Super Admin</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Admin</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if not a.is_super_admin %}
+            <form method="POST" action="{{ url_for('super_admin.remove_admin', user_id=a.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger rounded-3"
+                      data-confirm="Remove admin access for {{ a.display_name }}?">
+                Remove Admin
+              </button>
+            </form>
+            {% else %}
+              <span class="text-muted small">Protected</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+  <h6 class="fw-700 mb-3">Promote User to Admin</h6>
+  <form method="POST" action="{{ url_for('super_admin.add_admin') }}" class="d-flex gap-2 align-items-end">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div>
+      <label class="form-label small fw-600">User ID</label>
+      <input type="number" name="user_id" class="form-control form-control-sm" placeholder="User ID" required style="width:120px">
+    </div>
+    <button type="submit" class="btn btn-sm btn-warning text-dark fw-600 rounded-3">
+      <i class="fa fa-user-shield me-1"></i>Make Admin
+    </button>
+  </form>
+  <p class="text-muted small mt-2 mb-0">Find the user's ID on the <a href="{{ url_for('super_admin.users') }}">Users page</a>.</p>
+</div>
+
+<!-- Quick Links -->
+<div class="row g-3">
+  <div class="col-md-4">
+    <a href="{{ url_for('super_admin.download_db') }}" class="bp-card p-4 d-block text-decoration-none text-center">
+      <i class="fa fa-database fa-2x text-gold mb-2"></i>
+      <div class="fw-700 small">Download Database</div>
+      <div class="text-muted" style="font-size:0.75rem">Download bestpay.db file</div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{{ url_for('super_admin.settings') }}" class="bp-card p-4 d-block text-decoration-none text-center">
+      <i class="fa fa-gear fa-2x text-gold mb-2"></i>
+      <div class="fw-700 small">Site Settings</div>
+      <div class="text-muted" style="font-size:0.75rem">Bank details, fees, commissions</div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{{ url_for('super_admin.users') }}" class="bp-card p-4 d-block text-decoration-none text-center">
+      <i class="fa fa-users fa-2x text-gold mb-2"></i>
+      <div class="fw-700 small">Manage Users</div>
+      <div class="text-muted" style="font-size:0.75rem">View, edit, reset passwords</div>
+    </a>
+  </div>
+</div>
+{% endblock %}

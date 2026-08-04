@@ -1,0 +1,41 @@
+{% extends "dashboard/layout.html" %}
+{% block title %}Notifications{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-4">
+  <h4 class="fw-800 mb-1">Notifications</h4>
+  <p class="text-muted small">All your recent activity and updates</p>
+</div>
+
+<div class="bp-card">
+  <div class="card-body p-4">
+    {% if notifications %}
+      <div class="d-flex flex-column gap-2">
+        {% for n in notifications %}
+        <a href="{{ n.link or '#' }}" class="text-decoration-none">
+          <div class="p-3 rounded-3 d-flex align-items-start gap-3 {% if not n.is_read %}bg-light{% endif %}"
+               style="transition:background 0.2s" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='{% if not n.is_read %}#f8f9fa{% else %}''{% endif %}'">
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(226,183,20,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i class="fa fa-bell text-gold"></i>
+            </div>
+            <div class="flex-grow-1">
+              <p class="mb-1 small {% if not n.is_read %}fw-600 text-dark{% else %}text-muted{% endif %}">{{ n.message }}</p>
+              <span class="text-muted" style="font-size:0.72rem"><i class="fa fa-clock me-1"></i>{{ n.created_at.strftime('%B %d, %Y at %H:%M') }}</span>
+            </div>
+            {% if not n.is_read %}
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);flex-shrink:0;margin-top:6px"></div>
+            {% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="fa fa-bell-slash fa-3x mb-3 opacity-25"></i>
+        <h6>No notifications yet</h6>
+        <p class="small">You'll be notified here about account activity, referrals, and payments.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

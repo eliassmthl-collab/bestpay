@@ -1,0 +1,145 @@
+{% extends "dashboard/layout.html" %}
+{% block title %}Withdraw{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-800 mb-1">Withdraw Funds</h4>
+    <p class="text-muted mb-0 small">Transfer your earnings to your bank account</p>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="balance-card h-100">
+      <p class="text-white-50 small mb-1">Available Balance</p>
+      <div class="balance-amount mb-3">₦{{ "{:,.0f}".format(current_user.balance) }}</div>
+      <p class="text-white-50 small mb-0"><i class="fa fa-info-circle me-1"></i>Select an amount to withdraw</p>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="bp-card p-4 h-100">
+      <h6 class="fw-700 mb-3"><i class="fa fa-arrow-up me-2 text-gold"></i>New Withdrawal Request</h6>
+      <form method="POST" action="{{ url_for('dashboard.withdraw') }}">
+        {{ form.hidden_tag() }}
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">{{ form.amount.label.text }}</label>
+            <!-- Hidden select that WTForms validates -->
+            {{ form.amount(class="d-none", id="amount-select") }}
+            <!-- Visual amount picker -->
+            <div class="row g-2" id="amount-picker">
+              {% set amounts = [2000, 5000, 10000, 30000, 80000, 200000, 500000, 1000000] %}
+              {% for a in amounts %}
+              <div class="col-6 col-md-3">
+                <button type="button"
+                        class="amount-btn w-100 py-2 px-1 rounded border fw-600 small"
+                        data-value="{{ a }}"
+                        style="background:#f8f8f8;border-color:#ddd;cursor:pointer;transition:all .2s">
+                  ₦{{ "{:,}".format(a) }}
+                </button>
+              </div>
+              {% endfor %}
+            </div>
+            {% if form.amount.errors %}
+              <div class="invalid-feedback d-block">{{ form.amount.errors[0] }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            {{ form.bank_name.label(class="form-label") }}
+            {{ form.bank_name(class="form-control", placeholder="e.g. GTBank") }}
+            {% if form.bank_name.errors %}
+              <div class="invalid-feedback d-block">{{ form.bank_name.errors[0] }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            {{ form.account_number.label(class="form-label") }}
+            {{ form.account_number(class="form-control", placeholder="10-digit account number") }}
+            {% if form.account_number.errors %}
+              <div class="invalid-feedback d-block">{{ form.account_number.errors[0] }}</div>
+            {% endif %}
+          </div>
+          <div class="col-12">
+            {{ form.account_name.label(class="form-label") }}
+            {{ form.account_name(class="form-control", placeholder="Your full name as on bank account") }}
+            {% if form.account_name.errors %}
+              <div class="invalid-feedback d-block">{{ form.account_name.errors[0] }}</div>
+            {% endif %}
+          </div>
+          <div class="col-12 mt-1">
+            <button type="submit" class="btn-gold-full w-100 py-3">
+              <i class="fa fa-paper-plane me-2"></i>Submit Withdrawal Request
+            </button>
+            <p class="text-muted small text-center mt-2 mb-0">
+              <i class="fa fa-clock me-1"></i>Processed within 30 minutes
+            </p>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Withdrawal History -->
+<div class="bp-card">
+  <div class="card-body p-4">
+    <h6 class="fw-700 mb-3">Withdrawal History</h6>
+    {% if history %}
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase">
+              <th>Date</th><th>Amount</th><th>Bank</th><th>Account</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for w in history %}
+            <tr>
+              <td class="text-muted small">{{ w.created_at.strftime('%b %d, %Y') }}</td>
+              <td class="fw-700 text-danger">-₦{{ "{:,.0f}".format(w.amount) }}</td>
+              <td class="small">{{ w.bank_name }}</td>
+              <td class="small">{{ w.account_number }}<br><span class="text-muted">{{ w.account_name }}</span></td>
+              <td>
+                <span class="badge-status badge-{{ w.status }}">{{ w.status | capitalize }}</span>
+                {% if w.rejection_reason and w.status == 'rejected' %}
+                  <br><small class="text-muted">{{ w.rejection_reason }}</small>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="fa fa-wallet fa-2x mb-2 opacity-25"></i>
+        <p class="mb-0 small">No withdrawal history yet.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const amountSelect = document.getElementById('amount-select');
+  const amountBtns   = document.querySelectorAll('.amount-btn');
+
+  amountBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Deselect all
+      amountBtns.forEach(b => {
+        b.style.background  = '#f8f8f8';
+        b.style.borderColor = '#ddd';
+        b.style.color       = '';
+      });
+      // Highlight selected
+      btn.style.background  = 'var(--gold, #e2b714)';
+      btn.style.borderColor = 'var(--gold, #e2b714)';
+      btn.style.color       = '#1a1a2e';
+      // Set the hidden select value
+      amountSelect.value = btn.dataset.value;
+    });
+  });
+</script>
+{% endblock %}

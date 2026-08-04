@@ -1,0 +1,112 @@
+{% extends "dashboard/layout.html" %}
+{% block title %}Profile{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-4">
+  <h4 class="fw-800 mb-1">My Profile</h4>
+  <p class="text-muted small">Update your account details</p>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="bp-card p-4 text-center">
+      <div class="avatar-lg mx-auto mb-3 d-flex align-items-center justify-content-center"
+           style="width:80px;height:80px;font-size:2rem;border-radius:20px;background:var(--gold);color:var(--navy)">
+        {{ current_user.display_name[0].upper() }}
+      </div>
+      <h5 class="fw-700 mb-1">{{ current_user.display_name }}</h5>
+      <p class="text-muted small mb-2">{{ current_user.email }}</p>
+      <span class="badge {% if current_user.is_approved %}bg-success{% else %}bg-warning text-dark{% endif %} px-3">
+        {% if current_user.is_approved %}Active{% else %}Pending Activation{% endif %}
+      </span>
+      <hr>
+      <div class="row text-center g-2">
+        <div class="col-6">
+          <div class="fw-700 text-navy fs-5">{{ current_user.referral_count }}</div>
+          <div class="text-muted" style="font-size:0.75rem">Referrals</div>
+        </div>
+        <div class="col-6">
+          <div class="fw-700 text-navy fs-5">₦{{ "{:,.0f}".format(current_user.balance) }}</div>
+          <div class="text-muted" style="font-size:0.75rem">Balance</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <!-- Profile Form -->
+    <div class="bp-card p-4 mb-4">
+      <h6 class="fw-700 mb-3"><i class="fa fa-user me-2 text-gold"></i>Personal Information</h6>
+      <form method="POST" action="{{ url_for('dashboard.profile') }}">
+        {{ form.hidden_tag() }}
+        <div class="row g-3">
+          <div class="col-md-6">
+            {{ form.display_name.label(class="form-label") }}
+            {{ form.display_name(class="form-control") }}
+            {% if form.display_name.errors %}
+              <div class="invalid-feedback d-block">{{ form.display_name.errors[0] }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            {{ form.phone.label(class="form-label") }}
+            {{ form.phone(class="form-control") }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">Email Address</label>
+            <input type="text" class="form-control" value="{{ current_user.email }}" disabled>
+          </div>
+          <div class="col-12">
+            {{ form.submit(class="btn-gold-full px-4 py-2") }}
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Change Password -->
+    <div class="bp-card p-4">
+      <h6 class="fw-700 mb-3"><i class="fa fa-lock me-2 text-gold"></i>Change Password</h6>
+      <form method="POST" action="{{ url_for('dashboard.change_password') }}">
+        {{ pw_form.hidden_tag() }}
+        <div class="row g-3">
+          <div class="col-12">
+            {{ pw_form.current_password.label(class="form-label") }}
+            {{ pw_form.current_password(class="form-control", placeholder="Current password") }}
+          </div>
+          <div class="col-md-6">
+            {{ pw_form.new_password.label(class="form-label") }}
+            {{ pw_form.new_password(class="form-control", placeholder="Min. 6 characters") }}
+          </div>
+          <div class="col-md-6">
+            {{ pw_form.confirm_password.label(class="form-label") }}
+            {{ pw_form.confirm_password(class="form-control", placeholder="Repeat new password") }}
+          </div>
+          <div class="col-12">
+            {{ pw_form.submit(class="btn btn-outline-secondary px-4 rounded-3") }}
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Account Info -->
+    <div class="bp-card p-4 mt-4">
+      <h6 class="fw-700 mb-3"><i class="fa fa-id-card me-2 text-gold"></i>Account Details</h6>
+      <div class="row g-2 small">
+        <div class="col-md-6">
+          <span class="text-muted">Referral Code:</span>
+          <strong class="ms-2">{{ current_user.referral_code }}</strong>
+        </div>
+        <div class="col-md-6">
+          <span class="text-muted">Member Since:</span>
+          <strong class="ms-2">{{ current_user.created_at.strftime('%b %Y') }}</strong>
+        </div>
+        {% if current_user.referred_by %}
+        <div class="col-12">
+          <span class="text-muted">Referred By Code:</span>
+          <strong class="ms-2">{{ current_user.referred_by }}</strong>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

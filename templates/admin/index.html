@@ -1,0 +1,126 @@
+{% extends "admin/layout.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-800 mb-1">Admin Dashboard</h4>
+    <p class="text-muted mb-0 small">Platform overview and management</p>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="row g-4 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="stat-card">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-icon"><i class="fa fa-users"></i></div>
+      </div>
+      <div class="stat-value">{{ total_users }}</div>
+      <div class="small text-success mt-1"><i class="fa fa-circle-check me-1"></i>{{ total_approved }} active</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card" style="border-left-color:#f59e0b">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="stat-label">Pending Payments</div>
+        <div class="stat-icon" style="background:rgba(245,158,11,0.12)"><i class="fa fa-clock" style="color:#f59e0b"></i></div>
+      </div>
+      <div class="stat-value">{{ pending_payments }}</div>
+      <a href="{{ url_for('admin.payments') }}" class="small text-primary mt-1 d-inline-block">Review now →</a>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card" style="border-left-color:#6366f1">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="stat-label">Pending Withdrawals</div>
+        <div class="stat-icon" style="background:rgba(99,102,241,0.12)"><i class="fa fa-wallet" style="color:#6366f1"></i></div>
+      </div>
+      <div class="stat-value">{{ pending_withdrawals }}</div>
+      <a href="{{ url_for('admin.withdrawals') }}" class="small text-primary mt-1 d-inline-block">Review now →</a>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card" style="border-left-color:#10b981">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="stat-label">Open Tickets</div>
+        <div class="stat-icon" style="background:rgba(16,185,129,0.12)"><i class="fa fa-headset" style="color:#10b981"></i></div>
+      </div>
+      <div class="stat-value">{{ open_tickets }}</div>
+      <a href="{{ url_for('admin.tickets') }}" class="small text-primary mt-1 d-inline-block">View tickets →</a>
+    </div>
+  </div>
+</div>
+
+<!-- Financials -->
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="balance-card">
+      <p class="text-white-50 small mb-1">Total Deposited</p>
+      <div class="balance-amount mb-1">₦{{ "{:,.0f}".format(total_deposited) }}</div>
+      <p class="text-white-50 small mb-0">All time registration fees</p>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="balance-card" style="background:linear-gradient(135deg,#0f3460,#1a1a2e)">
+      <p class="text-white-50 small mb-1">Total Withdrawn</p>
+      <div class="balance-amount mb-1">₦{{ "{:,.0f}".format(total_withdrawn) }}</div>
+      <p class="text-white-50 small mb-0">Approved withdrawals</p>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Users -->
+<div class="bp-card">
+  <div class="card-body p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="fw-700 mb-0">Recent Registrations</h6>
+      <a href="{{ url_for('admin.users') }}" class="small text-gold">View All</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase">
+            <th>User</th><th>Referrals</th><th>Balance</th><th>Payment</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in recent_users %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-sm">{{ u.display_name[0].upper() }}</div>
+                <div>
+                  <div class="fw-600 small">{{ u.display_name }}</div>
+                  <div class="text-muted" style="font-size:0.75rem">{{ u.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="fw-600">{{ u.referral_count }}</td>
+            <td class="fw-600">₦{{ "{:,.0f}".format(u.balance) }}</td>
+            <td>
+              {% if u.registration_fee_paid %}
+                <span class="badge bg-success-subtle text-success">Paid</span>
+              {% elif u.payment_submitted %}
+                <span class="badge bg-warning-subtle text-warning">Submitted</span>
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary">Unpaid</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.is_approved %}
+                <span class="badge-status badge-approved">Active</span>
+              {% else %}
+                <span class="badge-status badge-pending">Pending</span>
+              {% endif %}
+            </td>
+            <td><a href="{{ url_for('admin.user_detail', user_id=u.id) }}" class="btn btn-sm btn-outline-secondary rounded-3">View</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

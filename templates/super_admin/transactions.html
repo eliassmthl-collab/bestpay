@@ -1,0 +1,58 @@
+{% extends "super_admin/layout.html" %}
+{% block title %}All Transactions (Super){% endblock %}
+
+{% block super_admin_content %}
+<div class="mb-4">
+  <h4 class="fw-800 mb-1">All Transactions</h4>
+  <p class="text-muted mb-0 small">{{ txns.total }} total transactions platform-wide</p>
+</div>
+
+<div class="bp-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr><th>Date</th><th>User (ID)</th><th>Type</th><th>Amount</th><th>Description</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for t in txns.items %}
+        <tr>
+          <td class="small text-muted">{{ t.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+          <td>
+            <a href="{{ url_for('super_admin.user_detail', user_id=t.user_id) }}" class="text-decoration-none">
+              <div class="fw-600 small">{{ t.user.display_name }}</div>
+              <div class="text-muted" style="font-size:0.72rem">#{{ t.user_id }} · {{ t.user.email }}</div>
+            </a>
+          </td>
+          <td>
+            <span class="badge rounded-pill {% if t.type == 'commission' %}bg-success-subtle text-success{% elif t.type == 'deposit' %}bg-primary-subtle text-primary{% else %}bg-warning-subtle text-warning{% endif %} px-3">
+              {{ t.type | capitalize }}
+            </span>
+          </td>
+          <td class="fw-700 {% if t.type == 'withdrawal' %}text-danger{% else %}text-success{% endif %}">
+            {{ '-' if t.type == 'withdrawal' else '+' }}₦{{ "{:,.0f}".format(t.amount) }}
+          </td>
+          <td class="small text-muted">{{ t.description or '—' }}</td>
+          <td><span class="badge-status badge-{{ t.status }}">{{ t.status | capitalize }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if txns.pages > 1 %}
+<nav class="mt-4">
+  <ul class="pagination justify-content-center">
+    {% for p in txns.iter_pages() %}
+      {% if p %}
+        <li class="page-item {% if p == txns.page %}active{% endif %}">
+          <a class="page-link" href="?page={{ p }}">{{ p }}</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

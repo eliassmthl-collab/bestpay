@@ -1,0 +1,70 @@
+{% extends "dashboard/layout.html" %}
+{% block title %}Support{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-800 mb-1">Customer Support</h4>
+    <p class="text-muted mb-0 small">We're here to help. Submit a ticket and we'll respond ASAP.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="bp-card p-4">
+      <h6 class="fw-700 mb-3"><i class="fa fa-ticket me-2 text-gold"></i>New Support Ticket</h6>
+      <form method="POST" action="{{ url_for('dashboard.support') }}">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+          {{ form.subject.label(class="form-label") }}
+          {{ form.subject(class="form-control", placeholder="Brief description of your issue") }}
+          {% if form.subject.errors %}
+            <div class="invalid-feedback d-block">{{ form.subject.errors[0] }}</div>
+          {% endif %}
+        </div>
+        <div class="mb-3">
+          {{ form.message.label(class="form-label") }}
+          {{ form.message(class="form-control", placeholder="Describe your issue in detail...", rows=5) }}
+          {% if form.message.errors %}
+            <div class="invalid-feedback d-block">{{ form.message.errors[0] }}</div>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn-gold-full w-100 py-2">
+          <i class="fa fa-paper-plane me-2"></i>Submit Ticket
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="bp-card p-4">
+      <h6 class="fw-700 mb-3">My Tickets ({{ tickets | length }})</h6>
+      {% if tickets %}
+        <div class="d-flex flex-column gap-3">
+          {% for t in tickets %}
+          <a href="{{ url_for('dashboard.ticket_detail', ticket_id=t.id) }}" class="text-decoration-none">
+            <div class="p-3 rounded-3 border border-1 border-light-subtle d-flex align-items-start justify-content-between gap-2"
+                 style="transition:all 0.2s;cursor:pointer" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background=''">
+              <div>
+                <div class="fw-600 text-dark small mb-1">{{ t.subject }}</div>
+                <div class="text-muted" style="font-size:0.78rem">{{ t.message[:80] }}{% if t.message|length > 80 %}...{% endif %}</div>
+                <div class="text-muted mt-1" style="font-size:0.72rem">
+                  <i class="fa fa-clock me-1"></i>{{ t.created_at.strftime('%b %d, %Y') }}
+                  · {{ t.replies|length }} reply{% if t.replies|length != 1 %}ies{% endif %}
+                </div>
+              </div>
+              <span class="badge-status badge-{{ t.status }} text-nowrap">{{ t.status | capitalize }}</span>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="fa fa-headset fa-3x mb-3 opacity-25"></i>
+          <p class="mb-0 small">No tickets yet. Use the form to submit a request.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

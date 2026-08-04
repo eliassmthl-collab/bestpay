@@ -1,0 +1,69 @@
+{% extends "super_admin/layout.html" %}
+{% block title %}All Users (Super){% endblock %}
+
+{% block super_admin_content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-800 mb-1">All Users</h4>
+    <p class="text-muted mb-0 small">{{ users.total }} total accounts</p>
+  </div>
+  <form class="d-flex gap-2" method="GET">
+    <input type="text" class="form-control form-control-sm" name="q" value="{{ search }}" placeholder="Search name or email..." style="width:250px">
+    <button type="submit" class="btn btn-sm btn-primary rounded-3">Search</button>
+  </form>
+</div>
+
+<div class="bp-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr><th>ID</th><th>User</th><th>Phone</th><th>Referrals</th><th>Balance</th><th>Status</th><th>Role</th><th>Joined</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for u in users.items %}
+        <tr>
+          <td class="text-muted small">#{{ u.id }}</td>
+          <td>
+            <div class="fw-600 small">{{ u.display_name }}</div>
+            <div class="text-muted" style="font-size:0.72rem">{{ u.email }}</div>
+          </td>
+          <td class="small text-muted">{{ u.phone or '—' }}</td>
+          <td class="fw-600">{{ u.referral_count }}</td>
+          <td class="fw-600 text-success">₦{{ "{:,.0f}".format(u.balance) }}</td>
+          <td>
+            {% if u.is_approved %}<span class="badge-status badge-approved">Active</span>
+            {% elif u.payment_submitted %}<span class="badge-status badge-pending">Pending Pay</span>
+            {% else %}<span class="badge-status badge-closed">Inactive</span>{% endif %}
+          </td>
+          <td>
+            {% if u.is_super_admin %}<span class="badge bg-danger">Super Admin</span>
+            {% elif u.is_admin %}<span class="badge bg-warning text-dark">Admin</span>
+            {% else %}<span class="badge bg-secondary-subtle text-secondary">User</span>{% endif %}
+          </td>
+          <td class="small text-muted">{{ u.created_at.strftime('%b %d') }}</td>
+          <td>
+            <a href="{{ url_for('super_admin.user_detail', user_id=u.id) }}" class="btn btn-sm btn-outline-secondary rounded-3">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if users.pages > 1 %}
+<nav class="mt-4">
+  <ul class="pagination justify-content-center">
+    {% for p in users.iter_pages() %}
+      {% if p %}
+        <li class="page-item {% if p == users.page %}active{% endif %}">
+          <a class="page-link" href="?page={{ p }}&q={{ search }}">{{ p }}</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}
