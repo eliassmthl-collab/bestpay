@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-BestPay Database Seed Script
+BestPay Database Seed Script (PostgreSQL)
 Run: python seed.py
 """
 
@@ -13,9 +13,9 @@ app = create_app()
 
 def seed():
     with app.app_context():
-        print("🌱 Seeding BestPay database...")
+        print("🌱 Seeding BestPay PostgreSQL database…")
 
-        # ── Site Settings ──────────────────────────────
+        # ── Site Settings ──────────────────────────────────────────────────
         settings = {
             "bank_name": "GTBank",
             "account_number": "0123456789",
@@ -32,7 +32,7 @@ def seed():
         db.session.commit()
         print("  ✓ Site settings seeded")
 
-        # ── Super Admin ────────────────────────────────
+        # ── Super Admin ────────────────────────────────────────────────────
         if not User.query.filter_by(email="super@bestpay.com").first():
             db.session.add(User(
                 email="super@bestpay.com",
@@ -47,7 +47,7 @@ def seed():
             ))
             print("  ✓ super@bestpay.com / admin123")
 
-        # ── Admins ────────────────────────────────────
+        # ── Admins ────────────────────────────────────────────────────────
         for email, name, code in [
             ("best@bestpay.com",  "Best Admin",  "BESTADM1"),
             ("elias@bestpay.com", "Elias Admin", "ELIADM1"),
@@ -70,13 +70,12 @@ def seed():
         print("  ✓ No test users seeded (clean slate for real users)")
 
         print("\n" + "═" * 50)
-        print("✅  BestPay seeded successfully!")
+        print("✅  BestPay seeded successfully! (PostgreSQL)")
         print("═" * 50)
         print("\n📋 Login Credentials:")
         print("   super@bestpay.com  → admin123  (super admin)")
         print("   best@bestpay.com   → admin123  (admin)")
         print("   elias@bestpay.com  → admin123  (admin)")
-        print("   [any test email]   → test123   (user)")
         print("\n🚀  Run the app:  python run.py")
         print("   → http://localhost:5000\n")
 

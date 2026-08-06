@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, abort
 from flask_login import login_required, current_user
 from app import db
 from app.models import User, Transaction, Withdrawal, SupportTicket, TicketReply, Notification, SiteSetting
 from app.forms import TicketReplyForm, AdminUserEditForm
-from app.helpers import admin_required, notify_user, check_referral_milestones
-from datetime import datetime
+from app.helpers import admin_required, notify_user, check_referral_milestones, push_update, push_admin_update
+from app.models import generate_token
+from datetime import datetime, timedelta
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -63,7 +64,7 @@ def users():
 @login_required
 @admin_required
 def user_detail(user_id):
-    user = User.query.get_or_404(user_id)
+    user = db.session.get(User, user_id) or abort(404)
     form = AdminUserEditForm(obj=user)
     if form.validate_on_submit():
         user.display_name = form.display_name.data
@@ -71,18 +72,53 @@ def user_detail(user_id):
         user.balance = form.balance.data
         user.is_approved = form.is_approved.data
         user.registration_fee_paid = form.registration_fee_paid.data
-        if not current_user.is_super_admin:
-            # Regular admins can't promote to admin
-            pass
-        else:
+        if current_user.is_super_admin:
             user.is_admin = form.is_admin.data
         db.session.commit()
         flash(f"User {user.email} updated.", "success")
+        # Push balance update to user
+        push_update(user.id, "balance_update", {
+            "balance": user.balance,
+            "balance_fmt": "{:,.0f}".format(user.balance),
+        })
         return redirect(url_for("admin.user_detail", user_id=user_id))
 
     txns = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.created_at.desc()).limit(10).all()
     referrals = User.query.filter_by(referred_by=user.referral_code).all()
-    return render_template("admin/user_detail.html", user=user, form=form, txns=txns, referrals=referrals)
+
+    # Generate withdrawal reset token info
+    reset_link = None
+    if user.withdrawal_reset_token and user.withdrawal_reset_expires and user.withdrawal_reset_expires > datetime.utcnow():
+        reset_link = url_for("dashboard.reset_withdrawal_password", token=user.withdrawal_reset_token, _external=True)
+
+    return render_template(
+        "admin/user_detail.html",
+        user=user, form=form, txns=txns, referrals=referrals,
+        reset_link=reset_link,
+    )
+
+
+@admin_bp.route("/users/<int:user_id>/generate-withdrawal-reset", methods=["POST"])
+@login_required
+@admin_required
+def generate_withdrawal_reset(user_id):
+    """Generate a one-time withdrawal password reset link (expires in 1 hour)."""
+    user = db.session.get(User, user_id)
+    if not user:
+        flash("User not found.", "danger")
+        return redirect(url_for("admin.users"))
+
+    token = generate_token(48)
+    user.withdrawal_reset_token = token
+    user.withdrawal_reset_expires = datetime.utcnow() + timedelta(hours=1)
+    db.session.commit()
+
+    reset_link = url_for("dashboard.reset_withdrawal_password", token=token, _external=True)
+    flash(
+        f"Reset link generated (expires in 1 hour). Copy it and send to the user manually: {reset_link}",
+        "info"
+    )
+    return redirect(url_for("admin.user_detail", user_id=user_id))
 
 
 @admin_bp.route("/payments")
@@ -102,41 +138,57 @@ def payments():
 @login_required
 @admin_required
 def approve_payment(user_id):
-    user = User.query.get_or_404(user_id)
-    user.registration_fee_paid = True
-    user.is_approved = True
+    user = db.session.get(User, user_id)
+    if not user:
+        flash("User not found.", "danger")
+        return redirect(url_for("admin.payments"))
 
-    # Record the deposit transaction
-    txn = Transaction(
-        user_id=user_id,
-        type="deposit",
-        amount=float(SiteSetting.get("registration_fee", "1000")),
-        status="approved",
-        description="Registration fee payment",
-        approved_by=current_user.id,
-    )
-    db.session.add(txn)
+    try:
+        user.registration_fee_paid = True
+        user.is_approved = True
 
-    # Credit the referrer if applicable
-    if user.referred_by:
-        referrer = User.query.filter_by(referral_code=user.referred_by).first()
-        if referrer and referrer.is_approved:
-            referrer.referral_count += 1
-            db.session.commit()
-            check_referral_milestones(referrer)
-            notify_user(
-                referrer.id,
-                f"🎉 {user.display_name} just joined using your referral link! Your referral count is now {referrer.referral_count}.",
-                "/dashboard/referrals"
-            )
+        txn = Transaction(
+            user_id=user_id,
+            type="deposit",
+            amount=float(SiteSetting.get("registration_fee", "1000")),
+            status="approved",
+            description="Registration fee payment",
+            approved_by=current_user.id,
+        )
+        db.session.add(txn)
 
-    db.session.commit()
-    notify_user(
-        user_id,
-        "✅ Your payment has been verified! Your account is now active. Start referring friends to earn rewards!",
-        "/dashboard"
-    )
-    flash(f"{user.display_name}'s account has been approved.", "success")
+        # Credit the referrer if applicable
+        if user.referred_by:
+            referrer = User.query.filter_by(referral_code=user.referred_by).first()
+            if referrer and referrer.is_approved:
+                # referral_count is now computed, so just trigger milestones
+                db.session.flush()
+                check_referral_milestones(referrer)
+                notify_user(
+                    referrer.id,
+                    f"🎉 {user.display_name} joined using your referral link! You now have {referrer.referral_count} active referrals.",
+                    "/dashboard/referrals"
+                )
+
+        db.session.commit()
+
+        notify_user(
+            user_id,
+            "✅ Your payment has been verified! Your account is now active. Start referring friends to earn rewards!",
+            "/dashboard"
+        )
+
+        # Push real-time update to the user
+        push_update(user_id, "account_approved", {
+            "is_approved": True,
+            "registration_fee_paid": True,
+        })
+
+        flash(f"{user.display_name}'s account has been approved.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error approving payment: {str(e)}", "danger")
+
     return redirect(url_for("admin.payments"))
 
 
@@ -144,15 +196,24 @@ def approve_payment(user_id):
 @login_required
 @admin_required
 def reject_payment(user_id):
-    user = User.query.get_or_404(user_id)
-    user.payment_submitted = False
-    db.session.commit()
-    notify_user(
-        user_id,
-        "❌ Your payment could not be verified. Please re-submit your payment confirmation.",
-        "/dashboard/activate"
-    )
-    flash(f"{user.display_name}'s payment has been rejected.", "warning")
+    user = db.session.get(User, user_id)
+    if not user:
+        flash("User not found.", "danger")
+        return redirect(url_for("admin.payments"))
+
+    try:
+        user.payment_submitted = False
+        db.session.commit()
+        notify_user(
+            user_id,
+            "❌ Your payment could not be verified. Please re-submit your payment confirmation.",
+            "/dashboard/activate"
+        )
+        flash(f"{user.display_name}'s payment has been rejected.", "warning")
+    except Exception:
+        db.session.rollback()
+        flash("Error rejecting payment.", "danger")
+
     return redirect(url_for("admin.payments"))
 
 
@@ -171,30 +232,52 @@ def withdrawals():
 @login_required
 @admin_required
 def approve_withdrawal(wid):
-    w = Withdrawal.query.get_or_404(wid)
+    w = db.session.get(Withdrawal, wid)
+    if not w:
+        flash("Withdrawal not found.", "danger")
+        return redirect(url_for("admin.withdrawals"))
+
     if w.status != "pending":
         flash("This withdrawal has already been processed.", "warning")
         return redirect(url_for("admin.withdrawals"))
 
-    w.status = "approved"
-    w.approved_at = datetime.utcnow()
-    w.approved_by = current_user.id
+    try:
+        w.status = "approved"
+        w.approved_at = datetime.utcnow()
+        w.approved_by = current_user.id
 
-    # Update the matching transaction
-    txn = Transaction.query.filter_by(
-        user_id=w.user_id, type="withdrawal", status="pending"
-    ).order_by(Transaction.created_at.desc()).first()
-    if txn:
-        txn.status = "approved"
-        txn.approved_by = current_user.id
+        # Use the FK-linked transaction directly — no fragile search
+        if w.transaction_id:
+            txn = db.session.get(Transaction, w.transaction_id)
+            if txn:
+                txn.status = "approved"
+                txn.approved_by = current_user.id
+        else:
+            # Fallback for old records without FK
+            txn = Transaction.query.filter_by(
+                user_id=w.user_id, type="withdrawal", status="pending"
+            ).order_by(Transaction.created_at.desc()).first()
+            if txn:
+                txn.status = "approved"
+                txn.approved_by = current_user.id
 
-    db.session.commit()
-    notify_user(
-        w.user_id,
-        f"✅ Your withdrawal of ₦{w.amount:,.0f} has been approved and sent to your bank account!",
-        "/dashboard/transactions"
-    )
-    flash(f"Withdrawal of ₦{w.amount:,.0f} approved.", "success")
+        db.session.commit()
+
+        notify_user(
+            w.user_id,
+            f"✅ Your withdrawal of ₦{w.amount:,.0f} has been approved and sent to your bank account!",
+            "/dashboard/transactions"
+        )
+        push_update(w.user_id, "withdrawal_update", {
+            "withdrawal_id": w.id,
+            "status": "approved",
+        })
+
+        flash(f"Withdrawal of ₦{w.amount:,.0f} approved.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error approving withdrawal: {str(e)}", "danger")
+
     return redirect(url_for("admin.withdrawals"))
 
 
@@ -202,36 +285,62 @@ def approve_withdrawal(wid):
 @login_required
 @admin_required
 def reject_withdrawal(wid):
-    w = Withdrawal.query.get_or_404(wid)
-    reason = request.form.get("reason", "No reason provided.")
+    w = db.session.get(Withdrawal, wid)
+    if not w:
+        flash("Withdrawal not found.", "danger")
+        return redirect(url_for("admin.withdrawals"))
+
     if w.status != "pending":
         flash("Already processed.", "warning")
         return redirect(url_for("admin.withdrawals"))
 
-    # Refund the user's balance with the full amount they were charged
-    # (the transaction stores the pre-tax amount; w.amount is post-tax)
-    user = User.query.get(w.user_id)
-    txn = Transaction.query.filter_by(
-        user_id=w.user_id, type="withdrawal", status="pending"
-    ).order_by(Transaction.created_at.desc()).first()
-    refund_amount = txn.amount if txn else w.amount
-    if user:
-        user.balance += refund_amount
+    reason = request.form.get("reason", "No reason provided.")
 
-    w.status = "rejected"
-    w.rejection_reason = reason
-    w.approved_by = current_user.id
+    try:
+        user = db.session.get(User, w.user_id)
 
-    if txn:
-        txn.status = "rejected"
+        # Use FK-linked transaction for refund amount
+        refund_amount = w.amount
+        if w.transaction_id:
+            txn = db.session.get(Transaction, w.transaction_id)
+            if txn:
+                refund_amount = txn.amount  # pre-tax amount
+                txn.status = "rejected"
+        else:
+            txn = Transaction.query.filter_by(
+                user_id=w.user_id, type="withdrawal", status="pending"
+            ).order_by(Transaction.created_at.desc()).first()
+            if txn:
+                refund_amount = txn.amount
+                txn.status = "rejected"
 
-    db.session.commit()
-    notify_user(
-        w.user_id,
-        f"❌ Your withdrawal of ₦{refund_amount:,.0f} was rejected. Reason: {reason}. Your balance has been refunded.",
-        "/dashboard/withdraw"
-    )
-    flash(f"Withdrawal rejected and ₦{refund_amount:,.0f} refunded to user.", "warning")
+        if user:
+            user.balance += refund_amount
+
+        w.status = "rejected"
+        w.rejection_reason = reason
+        w.approved_by = current_user.id
+
+        db.session.commit()
+
+        notify_user(
+            w.user_id,
+            f"❌ Your withdrawal of ₦{refund_amount:,.0f} was rejected. Reason: {reason}. Your balance has been refunded.",
+            "/dashboard/withdraw"
+        )
+        push_update(w.user_id, "withdrawal_update", {
+            "withdrawal_id": w.id,
+            "status": "rejected",
+            "rejection_reason": reason,
+            "balance": user.balance if user else None,
+            "balance_fmt": "{:,.0f}".format(user.balance) if user else None,
+        })
+
+        flash(f"Withdrawal rejected and ₦{refund_amount:,.0f} refunded to user.", "warning")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error rejecting withdrawal: {str(e)}", "danger")
+
     return redirect(url_for("admin.withdrawals"))
 
 

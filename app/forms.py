@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed
 from wtforms import (
     StringField, PasswordField, SubmitField, BooleanField,
     FloatField, TextAreaField, SelectField, HiddenField
@@ -26,7 +27,8 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Log In")
 
 
-WITHDRAWAL_AMOUNTS = [2000, 5000, 10000, 30000, 80000, 200000, 500000, 1000000]
+WITHDRAWAL_AMOUNTS = [2000, 10000, 30000, 80000, 200000, 500000, 1000000]
+
 
 class WithdrawalForm(FlaskForm):
     amount = SelectField(
@@ -37,7 +39,37 @@ class WithdrawalForm(FlaskForm):
     bank_name = StringField("Bank Name", validators=[DataRequired(), Length(max=100)])
     account_number = StringField("Account Number", validators=[DataRequired(), Length(min=10, max=20)])
     account_name = StringField("Account Name", validators=[DataRequired(), Length(max=100)])
+    withdrawal_password = PasswordField("Withdrawal Password", validators=[DataRequired()])
     submit = SubmitField("Submit Withdrawal Request")
+
+
+class SetWithdrawalPasswordForm(FlaskForm):
+    withdrawal_password = PasswordField("New Withdrawal Password", validators=[DataRequired(), Length(min=4)])
+    confirm_withdrawal_password = PasswordField(
+        "Confirm Withdrawal Password",
+        validators=[DataRequired(), EqualTo("withdrawal_password", message="Passwords must match")]
+    )
+    submit = SubmitField("Set Withdrawal Password")
+
+
+class ResetWithdrawalPasswordForm(FlaskForm):
+    withdrawal_password = PasswordField("New Withdrawal Password", validators=[DataRequired(), Length(min=4)])
+    confirm_withdrawal_password = PasswordField(
+        "Confirm Withdrawal Password",
+        validators=[DataRequired(), EqualTo("withdrawal_password", message="Passwords must match")]
+    )
+    submit = SubmitField("Reset Withdrawal Password")
+
+
+class PaymentProofForm(FlaskForm):
+    receipt = FileField(
+        "Upload Payment Receipt",
+        validators=[
+            DataRequired(),
+            FileAllowed(["jpg", "jpeg", "png", "webp", "pdf"], "Images and PDF only.")
+        ]
+    )
+    submit = SubmitField("Submit Payment Proof")
 
 
 class SupportTicketForm(FlaskForm):
@@ -71,7 +103,7 @@ class SiteSettingsForm(FlaskForm):
     platform_name = StringField("Platform Name", validators=[DataRequired()])
     registration_fee = StringField("Registration Fee (₦)", validators=[DataRequired()])
     milestone_3_bonus = StringField("3-Referral Milestone Bonus (₦)", validators=[DataRequired()])
-    per_referral_bonus = StringField("Per-Referral Bonus for refs 4–20 (₦)", validators=[DataRequired()])
+    per_referral_bonus = StringField("Per-Referral Bonus for refs 4-20 (₦)", validators=[DataRequired()])
     withdrawal_tax_rate = StringField("Withdrawal Tax Rate (e.g. 0.10 for 10%)", validators=[DataRequired()])
     submit = SubmitField("Save Settings")
 

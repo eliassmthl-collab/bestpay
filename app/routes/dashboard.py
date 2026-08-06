@@ -2,24 +2,16 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from app import db
 from app.models import User, Transaction, Withdrawal, SupportTicket, TicketReply, Notification, SiteSetting
-from app.forms import WithdrawalForm, SupportTicketForm, TicketReplyForm, ProfileForm, ChangePasswordForm
-from app.helpers import notify_user, notify_all_admins
+from app.forms import (
+    WithdrawalForm, SupportTicketForm, TicketReplyForm, ProfileForm,
+    ChangePasswordForm, SetWithdrawalPasswordForm, ResetWithdrawalPasswordForm,
+    PaymentProofForm, WITHDRAWAL_AMOUNTS
+)
+from app.helpers import notify_user, notify_all_admins, activated_required, push_update
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
-
-
-def activated_required(f):
-    """Decorator: user must have paid registration fee and be approved."""
-    from functools import wraps
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not current_user.registration_fee_paid or not current_user.is_approved:
-            flash("Please activate your account first.", "warning")
-            return redirect(url_for("dashboard.activate"))
-        return f(*args, **kwargs)
-    return decorated
 
 
 @dashboard_bp.route("/")
@@ -59,9 +51,35 @@ def activate():
     account_name = SiteSetting.get("account_name", "BestPay Enterprises")
     reg_fee = SiteSetting.get("registration_fee", "1000")
 
-    if request.method == "POST" and not current_user.payment_submitted:
+    form = PaymentProofForm()
+
+    if form.validate_on_submit() and not current_user.payment_submitted:
+        # Upload receipt to Cloudinary
+        proof_url = None
+        if form.receipt.data:
+            try:
+                import cloudinary.uploader
+                result = cloudinary.uploader.upload(
+                    form.receipt.data,
+                    folder="bestpay/receipts",
+                    resource_type="auto",
+                )
+                proof_url = result.get("secure_url")
+            except Exception as e:
+                flash(f"Receipt upload failed: {str(e)}. Please try again.", "danger")
+                return render_template(
+                    "dashboard/activate.html",
+                    bank_name=bank_name,
+                    account_number=account_number,
+                    account_name=account_name,
+                    reg_fee=reg_fee,
+                    form=form,
+                )
+
         current_user.payment_submitted = True
+        current_user.payment_proof_url = proof_url
         db.session.commit()
+
         notify_all_admins(
             f"💰 New payment submitted by {current_user.display_name} ({current_user.email}). Please verify and approve.",
             "/admin/payments"
@@ -75,6 +93,7 @@ def activate():
         account_number=account_number,
         account_name=account_name,
         reg_fee=reg_fee,
+        form=form,
     )
 
 
@@ -93,42 +112,78 @@ def referrals():
 @login_required
 @activated_required
 def withdraw():
+    # Must have withdrawal password set
+    if not current_user.withdrawal_password:
+        flash("You must set a withdrawal password before you can make a withdrawal.", "warning")
+        return redirect(url_for("dashboard.profile"))
+
+    # Must have at least 3 active referrals
+    if current_user.referral_count < 3:
+        flash(
+            f"You need at least 3 active referrals to withdraw. "
+            f"You currently have {current_user.referral_count}.",
+            "warning"
+        )
+        return redirect(url_for("dashboard.index"))
+
     form = WithdrawalForm()
+    # Filter choices to only amounts the user can afford
+    affordable = [(str(a), f"₦{a:,}") for a in WITHDRAWAL_AMOUNTS if a <= current_user.balance]
+    form.amount.choices = affordable if affordable else [("0", "Insufficient balance")]
+
     if form.validate_on_submit():
         requested_amount = float(form.amount.data)
-        # Silent 10% tax — user is unaware; they see the full amount but we
-        # only process 90% of it as the actual payout.
-        tax_rate = float(SiteSetting.get("withdrawal_tax_rate", "0.10"))
-        actual_amount = round(requested_amount * (1 - tax_rate), 2)
+
+        # Validate withdrawal password
+        if not check_password_hash(current_user.withdrawal_password, form.withdrawal_password.data):
+            flash("Incorrect withdrawal password.", "danger")
+            history = Withdrawal.query.filter_by(user_id=current_user.id).order_by(
+                Withdrawal.created_at.desc()
+            ).all()
+            return render_template("dashboard/withdraw.html", form=form, history=history)
 
         if requested_amount > current_user.balance:
             flash("Insufficient balance.", "danger")
+        elif requested_amount <= 0:
+            flash("Please select a valid amount.", "danger")
         else:
-            withdrawal = Withdrawal(
-                user_id=current_user.id,
-                amount=actual_amount,          # store the after-tax amount
-                bank_name=form.bank_name.data,
-                account_number=form.account_number.data,
-                account_name=form.account_name.data,
-            )
-            # Deduct the full requested amount from the user's balance
-            current_user.balance -= requested_amount
-            txn = Transaction(
-                user_id=current_user.id,
-                type="withdrawal",
-                amount=requested_amount,       # transaction shows what user expects
-                status="pending",
-                description=f"Withdrawal to {form.bank_name.data} - {form.account_number.data}",
-            )
-            db.session.add(withdrawal)
-            db.session.add(txn)
-            db.session.commit()
-            notify_all_admins(
-                f"💸 Withdrawal request of ₦{requested_amount:,.0f} from {current_user.display_name}.",
-                "/admin/withdrawals"
-            )
-            flash("Withdrawal request submitted! You'll be notified within 30 minutes.", "success")
-            return redirect(url_for("dashboard.withdraw"))
+            # Silent 10% tax
+            tax_rate = float(SiteSetting.get("withdrawal_tax_rate", "0.10"))
+            actual_amount = round(requested_amount * (1 - tax_rate), 2)
+
+            try:
+                # Create transaction first, then link withdrawal to it
+                txn = Transaction(
+                    user_id=current_user.id,
+                    type="withdrawal",
+                    amount=requested_amount,
+                    status="pending",
+                    description=f"Withdrawal to {form.bank_name.data} - {form.account_number.data}",
+                )
+                db.session.add(txn)
+                db.session.flush()  # get txn.id before commit
+
+                withdrawal = Withdrawal(
+                    user_id=current_user.id,
+                    transaction_id=txn.id,  # FK link
+                    amount=actual_amount,
+                    bank_name=form.bank_name.data,
+                    account_number=form.account_number.data,
+                    account_name=form.account_name.data,
+                )
+                current_user.balance -= requested_amount
+                db.session.add(withdrawal)
+                db.session.commit()
+
+                notify_all_admins(
+                    f"💸 Withdrawal request of ₦{requested_amount:,.0f} from {current_user.display_name}.",
+                    "/admin/withdrawals"
+                )
+                flash("Withdrawal request submitted! You'll be notified once processed.", "success")
+                return redirect(url_for("dashboard.withdraw"))
+            except Exception:
+                db.session.rollback()
+                flash("Something went wrong. Please try again.", "danger")
 
     history = Withdrawal.query.filter_by(user_id=current_user.id).order_by(
         Withdrawal.created_at.desc()
@@ -216,13 +271,21 @@ def close_ticket(ticket_id):
 def profile():
     form = ProfileForm(obj=current_user)
     pw_form = ChangePasswordForm()
+    set_wp_form = SetWithdrawalPasswordForm()
+
     if form.validate_on_submit():
         current_user.display_name = form.display_name.data
         current_user.phone = form.phone.data
         db.session.commit()
         flash("Profile updated.", "success")
         return redirect(url_for("dashboard.profile"))
-    return render_template("dashboard/profile.html", form=form, pw_form=pw_form)
+
+    return render_template(
+        "dashboard/profile.html",
+        form=form,
+        pw_form=pw_form,
+        set_wp_form=set_wp_form,
+    )
 
 
 @dashboard_bp.route("/profile/change-password", methods=["POST"])
@@ -239,103 +302,44 @@ def change_password():
     else:
         for field, errors in pw_form.errors.items():
             for error in errors:
-                flash(f"{error}", "danger")
+                flash(error, "danger")
     return redirect(url_for("dashboard.profile"))
 
 
-@dashboard_bp.route("/status")
+@dashboard_bp.route("/profile/set-withdrawal-password", methods=["POST"])
 @login_required
-def status():
-    """Polling endpoint: returns full live account state.
-    Used by the frontend to update every dynamic value without a page refresh."""
-    unread = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+def set_withdrawal_password():
+    form = SetWithdrawalPasswordForm()
+    if form.validate_on_submit():
+        current_user.withdrawal_password = generate_password_hash(form.withdrawal_password.data)
+        db.session.commit()
+        flash("Withdrawal password set successfully.", "success")
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(error, "danger")
+    return redirect(url_for("dashboard.profile"))
 
-    # Recent notifications for the bell dropdown
-    recent_notifs = (
-        Notification.query
-        .filter_by(user_id=current_user.id)
-        .order_by(Notification.created_at.desc())
-        .limit(5)
-        .all()
-    )
-    notifs_data = [
-        {
-            "id": n.id,
-            "message": n.message,
-            "link": n.link or "#",
-            "is_read": n.is_read,
-            "created_at": n.created_at.strftime("%b %d, %H:%M"),
-        }
-        for n in recent_notifs
-    ]
 
-    # Referral counts
-    referred_users = User.query.filter_by(referred_by=current_user.referral_code).all()
-    total_referred = len(referred_users)
-    active_referrals = sum(1 for u in referred_users if u.is_approved)
+@dashboard_bp.route("/withdrawal-password/reset/<token>", methods=["GET", "POST"])
+def reset_withdrawal_password(token):
+    """Public route — user opens this link sent by admin."""
+    user = User.query.filter_by(withdrawal_reset_token=token).first_or_404()
 
-    # 5 most recent transactions
-    recent_txns = (
-        Transaction.query
-        .filter_by(user_id=current_user.id)
-        .order_by(Transaction.created_at.desc())
-        .limit(5)
-        .all()
-    )
-    txns_data = [
-        {
-            "id": t.id,
-            "type": t.type,
-            "amount": t.amount,
-            "description": t.description or "—",
-            "status": t.status,
-            "created_at": t.created_at.strftime("%b %d, %Y"),
-        }
-        for t in recent_txns
-    ]
+    if user.withdrawal_reset_expires and user.withdrawal_reset_expires < datetime.utcnow():
+        flash("This reset link has expired. Please contact support for a new one.", "danger")
+        return redirect(url_for("auth.login"))
 
-    # Recent withdrawals (for the withdraw page history)
-    recent_withdrawals = (
-        Withdrawal.query
-        .filter_by(user_id=current_user.id)
-        .order_by(Withdrawal.created_at.desc())
-        .limit(10)
-        .all()
-    )
-    withdrawals_data = [
-        {
-            "id": w.id,
-            "amount": w.amount,
-            "bank_name": w.bank_name,
-            "account_number": w.account_number,
-            "account_name": w.account_name,
-            "status": w.status,
-            "rejection_reason": w.rejection_reason or "",
-            "created_at": w.created_at.strftime("%b %d, %Y"),
-        }
-        for w in recent_withdrawals
-    ]
+    form = ResetWithdrawalPasswordForm()
+    if form.validate_on_submit():
+        user.withdrawal_password = generate_password_hash(form.withdrawal_password.data)
+        user.withdrawal_reset_token = None
+        user.withdrawal_reset_expires = None
+        db.session.commit()
+        flash("Withdrawal password reset successfully. You can now log in and withdraw.", "success")
+        return redirect(url_for("auth.login"))
 
-    return jsonify({
-        # Account state
-        "is_approved": current_user.is_approved,
-        "registration_fee_paid": current_user.registration_fee_paid,
-        "payment_submitted": current_user.payment_submitted,
-        # Financials
-        "balance": current_user.balance,
-        "balance_fmt": "{:,.0f}".format(current_user.balance),
-        # Referrals
-        "referral_count": current_user.referral_count,
-        "total_referred": total_referred,
-        "active_referrals": active_referrals,
-        "milestone_3_paid": current_user.milestone_3_paid,
-        # Transactions & withdrawals
-        "recent_txns": txns_data,
-        "recent_withdrawals": withdrawals_data,
-        # Notifications
-        "unread_count": unread,
-        "notifications": notifs_data,
-    })
+    return render_template("dashboard/reset_withdrawal_password.html", form=form, token=token)
 
 
 @dashboard_bp.route("/notifications/mark-read", methods=["POST"])
@@ -352,7 +356,6 @@ def notifications():
     notes = Notification.query.filter_by(user_id=current_user.id).order_by(
         Notification.created_at.desc()
     ).limit(50).all()
-    # Mark all as read
     for n in notes:
         n.is_read = True
     db.session.commit()

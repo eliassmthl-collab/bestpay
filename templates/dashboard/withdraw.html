@@ -9,42 +9,86 @@
   </div>
 </div>
 
+<!-- Working hours notice -->
+<div class="alert alert-info d-flex align-items-start gap-2 mb-4">
+  <i class="fa fa-clock mt-1 flex-shrink-0"></i>
+  <div>
+    <strong>Banking Hours:</strong> Withdrawals are processed on <strong>working days, 9:00 AM – 5:00 PM</strong>.
+    Requests outside these hours will be processed on the next working day.
+  </div>
+</div>
+
+<!-- Referral requirement warning -->
+{% if current_user.referral_count < 3 %}
+<div class="alert alert-warning d-flex align-items-start gap-2 mb-4">
+  <i class="fa fa-users mt-1 flex-shrink-0"></i>
+  <div>
+    <strong>Referral Requirement Not Met:</strong>
+    You need at least <strong>3 active referrals</strong> before you can withdraw.
+    You currently have <strong>{{ current_user.referral_count }}</strong>.
+    <a href="{{ url_for('dashboard.referrals') }}" class="alert-link ms-1">Invite friends →</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- No withdrawal password warning -->
+{% if not current_user.withdrawal_password %}
+<div class="alert alert-danger d-flex align-items-start gap-2 mb-4">
+  <i class="fa fa-key mt-1 flex-shrink-0"></i>
+  <div>
+    <strong>Withdrawal Password Not Set:</strong>
+    You must set a withdrawal password in your
+    <a href="{{ url_for('dashboard.profile') }}" class="alert-link">profile</a> before withdrawing.
+  </div>
+</div>
+{% endif %}
+
 <div class="row g-4 mb-4">
   <div class="col-md-4">
     <div class="balance-card h-100">
       <p class="text-white-50 small mb-1">Available Balance</p>
       <div class="balance-amount mb-3" data-live="balance">₦{{ "{:,.0f}".format(current_user.balance) }}</div>
-      <p class="text-white-50 small mb-0"><i class="fa fa-info-circle me-1"></i>Select an amount to withdraw</p>
+      <p class="text-white-50 small mb-0"><i class="fa fa-info-circle me-1"></i>Only amounts you can afford are shown</p>
     </div>
   </div>
   <div class="col-md-8">
     <div class="bp-card p-4 h-100">
       <h6 class="fw-700 mb-3"><i class="fa fa-arrow-up me-2 text-gold"></i>New Withdrawal Request</h6>
-      <form method="POST" action="{{ url_for('dashboard.withdraw') }}">
+
+      {% if current_user.referral_count >= 3 and current_user.withdrawal_password %}
+      <form method="POST" action="{{ url_for('dashboard.withdraw') }}" id="withdrawForm">
         {{ form.hidden_tag() }}
-        <div class="row g-3">
-          <div class="col-12">
-            <label class="form-label">{{ form.amount.label.text }}</label>
-            <!-- Hidden select that WTForms validates -->
-            {{ form.amount(class="d-none", id="amount-select") }}
-            <!-- Visual amount picker -->
-            <div class="row g-2" id="amount-picker">
-              {% set amounts = [2000, 5000, 10000, 30000, 80000, 200000, 500000, 1000000] %}
-              {% for a in amounts %}
-              <div class="col-6 col-md-3">
-                <button type="button"
-                        class="amount-btn w-100 py-2 px-1 rounded border fw-600 small"
-                        data-value="{{ a }}"
-                        style="background:#f8f8f8;border-color:#ddd;cursor:pointer;transition:all .2s">
-                  ₦{{ "{:,}".format(a) }}
-                </button>
-              </div>
-              {% endfor %}
+
+        <!-- Hidden select for WTForms validation -->
+        {{ form.amount(class="d-none", id="amount-select") }}
+
+        <div class="mb-3">
+          <label class="form-label fw-600">Select Amount (₦)</label>
+          {% if form.amount.choices %}
+          <div class="row g-2" id="amount-picker">
+            {% for val, label in form.amount.choices %}
+            <div class="col-6 col-md-4">
+              <button type="button"
+                      class="amount-btn w-100 py-2 px-1 rounded border fw-600 small text-center"
+                      data-value="{{ val }}"
+                      style="background:#1e1e2e;border-color:#333;color:#ccc;cursor:pointer;transition:all .2s">
+                {{ label }}
+              </button>
             </div>
-            {% if form.amount.errors %}
-              <div class="invalid-feedback d-block">{{ form.amount.errors[0] }}</div>
-            {% endif %}
+            {% endfor %}
           </div>
+          {% else %}
+          <div class="alert alert-warning mb-0">
+            <i class="fa fa-triangle-exclamation me-1"></i>
+            Your balance is insufficient for any withdrawal amount.
+          </div>
+          {% endif %}
+          {% if form.amount.errors %}
+            <div class="invalid-feedback d-block mt-1">{{ form.amount.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <div class="row g-3">
           <div class="col-md-6">
             {{ form.bank_name.label(class="form-label") }}
             {{ form.bank_name(class="form-control", placeholder="e.g. GTBank") }}
@@ -61,21 +105,46 @@
           </div>
           <div class="col-12">
             {{ form.account_name.label(class="form-label") }}
-            {{ form.account_name(class="form-control", placeholder="Your full name as on bank account") }}
+            {{ form.account_name(class="form-control", placeholder="Name on your bank account") }}
             {% if form.account_name.errors %}
               <div class="invalid-feedback d-block">{{ form.account_name.errors[0] }}</div>
             {% endif %}
           </div>
+
+          <!-- Withdrawal Password -->
+          <div class="col-12">
+            <label class="form-label">
+              {{ form.withdrawal_password.label.text }}
+              <span class="text-muted small ms-1">— separate from your login password</span>
+            </label>
+            {{ form.withdrawal_password(class="form-control", placeholder="Enter your withdrawal password") }}
+            {% if form.withdrawal_password.errors %}
+              <div class="invalid-feedback d-block">{{ form.withdrawal_password.errors[0] }}</div>
+            {% endif %}
+            <div class="form-text">
+              Forgotten it?
+              <a href="{{ url_for('dashboard.support') }}">Open a support ticket</a> and request a reset.
+            </div>
+          </div>
+
           <div class="col-12 mt-1">
-            <button type="submit" class="btn-gold-full w-100 py-3">
+            <button type="submit" class="btn-gold-full w-100 py-3" id="submitBtn">
               <i class="fa fa-paper-plane me-2"></i>Submit Withdrawal Request
             </button>
-            <p class="text-muted small text-center mt-2 mb-0">
-              <i class="fa fa-clock me-1"></i>Processed within 30 minutes
-            </p>
           </div>
         </div>
       </form>
+      {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="fa fa-lock fa-2x mb-3 opacity-25"></i>
+        <p class="mb-2">Complete the requirements above to unlock withdrawals.</p>
+        {% if current_user.referral_count < 3 %}
+        <a href="{{ url_for('dashboard.referrals') }}" class="btn-gold-full px-4 py-2">
+          <i class="fa fa-share-nodes me-2"></i>Invite Friends
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -122,24 +191,33 @@
 
 {% block extra_js %}
 <script>
-  const amountSelect = document.getElementById('amount-select');
-  const amountBtns   = document.querySelectorAll('.amount-btn');
+  var amountSelect = document.getElementById('amount-select');
+  var amountBtns   = document.querySelectorAll('.amount-btn');
 
-  amountBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      // Deselect all
-      amountBtns.forEach(b => {
-        b.style.background  = '#f8f8f8';
-        b.style.borderColor = '#ddd';
-        b.style.color       = '';
+  amountBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      amountBtns.forEach(function(b) {
+        b.style.background  = '#1e1e2e';
+        b.style.borderColor = '#333';
+        b.style.color       = '#ccc';
       });
-      // Highlight selected
       btn.style.background  = 'var(--gold, #e2b714)';
       btn.style.borderColor = 'var(--gold, #e2b714)';
       btn.style.color       = '#1a1a2e';
-      // Set the hidden select value
-      amountSelect.value = btn.dataset.value;
+      if (amountSelect) amountSelect.value = btn.dataset.value;
     });
   });
+
+  // Disable submit after click
+  var withdrawForm = document.getElementById('withdrawForm');
+  if (withdrawForm) {
+    withdrawForm.addEventListener('submit', function() {
+      var btn = document.getElementById('submitBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i>Submitting…';
+      }
+    });
+  }
 </script>
 {% endblock %}

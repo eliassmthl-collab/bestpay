@@ -4,7 +4,7 @@
 {% block dashboard_content %}
 <div class="mb-4">
   <h4 class="fw-800 mb-1">My Profile</h4>
-  <p class="text-muted small">Update your account details</p>
+  <p class="text-muted small">Update your account details and security settings</p>
 </div>
 
 <div class="row g-4">
@@ -34,7 +34,7 @@
   </div>
 
   <div class="col-lg-8">
-    <!-- Profile Form -->
+    <!-- Profile Info -->
     <div class="bp-card p-4 mb-4">
       <h6 class="fw-700 mb-3"><i class="fa fa-user me-2 text-gold"></i>Personal Information</h6>
       <form method="POST" action="{{ url_for('dashboard.profile') }}">
@@ -62,9 +62,9 @@
       </form>
     </div>
 
-    <!-- Change Password -->
-    <div class="bp-card p-4">
-      <h6 class="fw-700 mb-3"><i class="fa fa-lock me-2 text-gold"></i>Change Password</h6>
+    <!-- Change Login Password -->
+    <div class="bp-card p-4 mb-4">
+      <h6 class="fw-700 mb-3"><i class="fa fa-lock me-2 text-gold"></i>Change Login Password</h6>
       <form method="POST" action="{{ url_for('dashboard.change_password') }}">
         {{ pw_form.hidden_tag() }}
         <div class="row g-3">
@@ -87,8 +87,60 @@
       </form>
     </div>
 
+    <!-- Withdrawal Password -->
+    <div class="bp-card p-4 mb-4">
+      <h6 class="fw-700 mb-3">
+        <i class="fa fa-key me-2 text-gold"></i>Withdrawal Password
+        {% if current_user.withdrawal_password %}
+          <span class="badge bg-success ms-2" style="font-size:0.7rem">Set</span>
+        {% else %}
+          <span class="badge bg-danger ms-2" style="font-size:0.7rem">Not Set</span>
+        {% endif %}
+      </h6>
+      <p class="text-muted small mb-3">
+        This is a <strong>separate password</strong> required each time you make a withdrawal.
+        It protects your funds even if someone has your login credentials.
+      </p>
+      {% if not current_user.withdrawal_password %}
+      <div class="alert alert-warning mb-3">
+        <i class="fa fa-triangle-exclamation me-2"></i>
+        You must set a withdrawal password before you can withdraw funds.
+      </div>
+      {% endif %}
+      <form method="POST" action="{{ url_for('dashboard.set_withdrawal_password') }}">
+        {{ set_wp_form.hidden_tag() }}
+        <div class="row g-3">
+          <div class="col-md-6">
+            {{ set_wp_form.withdrawal_password.label(class="form-label") }}
+            {{ set_wp_form.withdrawal_password(class="form-control", placeholder="Min. 4 characters") }}
+            {% if set_wp_form.withdrawal_password.errors %}
+              <div class="invalid-feedback d-block">{{ set_wp_form.withdrawal_password.errors[0] }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            {{ set_wp_form.confirm_withdrawal_password.label(class="form-label") }}
+            {{ set_wp_form.confirm_withdrawal_password(class="form-control", placeholder="Repeat password") }}
+            {% if set_wp_form.confirm_withdrawal_password.errors %}
+              <div class="invalid-feedback d-block">{{ set_wp_form.confirm_withdrawal_password.errors[0] }}</div>
+            {% endif %}
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-outline-warning px-4 rounded-3">
+              <i class="fa fa-key me-2"></i>
+              {% if current_user.withdrawal_password %}Update{% else %}Set{% endif %} Withdrawal Password
+            </button>
+          </div>
+        </div>
+      </form>
+      <p class="text-muted small mt-3 mb-0">
+        <i class="fa fa-circle-info me-1"></i>
+        Forgotten your withdrawal password?
+        <a href="{{ url_for('dashboard.support') }}">Open a support ticket</a> and ask an admin to send you a reset link.
+      </p>
+    </div>
+
     <!-- Account Info -->
-    <div class="bp-card p-4 mt-4">
+    <div class="bp-card p-4">
       <h6 class="fw-700 mb-3"><i class="fa fa-id-card me-2 text-gold"></i>Account Details</h6>
       <div class="row g-2 small">
         <div class="col-md-6">

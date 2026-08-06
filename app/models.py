@@ -10,6 +10,11 @@ def generate_referral_code():
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 
+def generate_token(length=32):
+    """Generate a secure random token."""
+    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
+
+
 class User(UserMixin, db.Model):
     __tablename__ = "users"
 
@@ -21,13 +26,17 @@ class User(UserMixin, db.Model):
     referral_code = db.Column(db.String(20), unique=True, nullable=False, default=generate_referral_code)
     referred_by = db.Column(db.String(20), nullable=True)
     balance = db.Column(db.Float, default=0.0)
-    referral_count = db.Column(db.Integer, default=0)
     registration_fee_paid = db.Column(db.Boolean, default=False)
     is_approved = db.Column(db.Boolean, default=False)
     payment_submitted = db.Column(db.Boolean, default=False)
+    payment_proof_url = db.Column(db.String(500), nullable=True)  # Cloudinary URL
     is_admin = db.Column(db.Boolean, default=False)
     is_super_admin = db.Column(db.Boolean, default=False)
     milestone_3_paid = db.Column(db.Boolean, default=False)
+    # Withdrawal password (separate from login password)
+    withdrawal_password = db.Column(db.String(256), nullable=True)
+    withdrawal_reset_token = db.Column(db.String(64), nullable=True)
+    withdrawal_reset_expires = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -35,6 +44,11 @@ class User(UserMixin, db.Model):
     withdrawals = db.relationship("Withdrawal", foreign_keys="Withdrawal.user_id", backref="user", lazy=True)
     support_tickets = db.relationship("SupportTicket", foreign_keys="SupportTicket.user_id", backref="user", lazy=True)
     notifications = db.relationship("Notification", foreign_keys="Notification.user_id", backref="user", lazy=True)
+
+    @property
+    def referral_count(self):
+        """Compute referral count dynamically from DB — always accurate."""
+        return User.query.filter_by(referred_by=self.referral_code, is_approved=True).count()
 
     def get_referral_link(self):
         return f"/signup?ref={self.referral_code}"
@@ -66,6 +80,7 @@ class Withdrawal(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    transaction_id = db.Column(db.Integer, db.ForeignKey("transactions.id"), nullable=True)  # FK to transaction
     amount = db.Column(db.Float, nullable=False)
     bank_name = db.Column(db.String(100), nullable=False)
     account_number = db.Column(db.String(30), nullable=False)
@@ -77,6 +92,7 @@ class Withdrawal(db.Model):
     approved_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
     approver = db.relationship("User", foreign_keys=[approved_by])
+    transaction = db.relationship("Transaction", foreign_keys=[transaction_id])
 
 
 class SupportTicket(db.Model):
